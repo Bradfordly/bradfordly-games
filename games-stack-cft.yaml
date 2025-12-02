@@ -2,7 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >
   games.bradfordly.com stack
 
-# Sensitive parameters are set in the console
 Parameters:
   EnvironmentName:
     Type: String
@@ -48,6 +47,7 @@ Parameters:
   Subnet1Id:
     Type: AWS::EC2::Subnet::Id
     Description: First subnet in the VPC (tag appropriately for EKS/ALB)
+    
   Subnet2Id:
     Type: AWS::EC2::Subnet::Id
     Description: Second subnet in the VPC (tag appropriately for EKS/ALB)

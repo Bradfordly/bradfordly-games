@@ -1,3 +1,6 @@
 template-file-path: games-stack-cft.yaml
-parameters: {}
+parameters:
+  VpcId: vpc-0db309332b29fbf9b
+  Subnet1Id: subnet-017eb2e61b84143b8
+  Subnet2Id: subnet-0be54c2b14b4e3d73
 tags: {}
