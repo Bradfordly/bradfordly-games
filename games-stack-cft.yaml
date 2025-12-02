@@ -134,7 +134,7 @@ Resources:
           Value: !Ref Owner
 
   #######################################
-  # EKS Cluster & Node Group
+  # EKS Cluster & Profile
   #######################################
 
   EksCluster:
@@ -152,6 +152,18 @@ Resources:
           Value: !Ref Component
         - Key: Owner
           Value: !Ref Owner
+
+  FargateProfile:
+    Type: AWS::EKS::FargateProfile
+    Properties:
+      ClusterName: !Ref EksCluster.Name
+      FargateProfileName: !Sub "${ClusterName}-fargate-profile-${EnvironmentName}"
+      PodExecutionRoleArn: !GetAtt FargateExecutionRole.Arn
+      Subnets:
+        - !Ref Subnet1Id
+        - !Ref Subnet2Id
+      Selectors:
+        - Namespace: fargate-ns
 
   #######################################
   # Cognito User Pool (User Login)
