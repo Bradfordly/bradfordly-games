@@ -1,0 +1,336 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  games.bradfordly.com stack
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+    Description: A short name for the environment (e.g. dev, prod)
+    AllowedValues:
+      - dev
+      - prod
+
+  ClusterName:
+    Type: String
+    Default: games-stack-eks-cluster
+    Description: EKS cluster name
+
+  KubernetesVersion:
+    Type: String
+    Default: "1.29"
+    AllowedValues:
+      - "1.27"
+      - "1.28"
+      - "1.29"
+
+  NodeInstanceType:
+    Type: String
+    Default: t3.medium
+    Description: EC2 instance type for worker nodes
+
+  NodeDesiredCapacity:
+    Type: Number
+    Default: 2
+  NodeMinSize:
+    Type: Number
+    Default: 2
+  NodeMaxSize:
+    Type: Number
+    Default: 4
+
+  # Existing networking (typically your default VPC + 2 subnets)
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: ID of the existing VPC (e.g. your default VPC)
+
+  Subnet1Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: First subnet in the VPC (tag appropriately for EKS/ALB)
+  Subnet2Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Second subnet in the VPC (tag appropriately for EKS/ALB)
+
+  CognitoDomainPrefix:
+    Type: String
+    Description: >
+      Unique prefix for Cognito hosted UI domain (e.g. mygameapp).
+      Must be globally unique within Cognito hosted domains.
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: "^[a-z0-9-]+$"
+
+  WebAppCallbackUrl:
+    Type: String
+    Description: OAuth2 callback URL (e.g. https://example.com/oauth2/idpresponse)
+  WebAppLogoutUrl:
+    Type: String
+    Description: Post-logout URL (e.g. https://example.com/)
+
+  NodeAmiType:
+    Type: String
+    Default: AL2_x86_64
+    AllowedValues:
+      - AL2_x86_64
+      - AL2_x86_64_GPU
+      - AL2_ARM_64
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Environment
+        Parameters:
+          - EnvironmentName
+          - ClusterName
+          - KubernetesVersion
+      - Label:
+          default: Existing Networking
+        Parameters:
+          - VpcId
+          - Subnet1Id
+          - Subnet2Id
+      - Label:
+          default: EKS Nodes
+        Parameters:
+          - NodeInstanceType
+          - NodeDesiredCapacity
+          - NodeMinSize
+          - NodeMaxSize
+          - NodeAmiType
+      - Label:
+          default: Cognito
+        Parameters:
+          - CognitoDomainPrefix
+          - WebAppCallbackUrl
+          - WebAppLogoutUrl
+
+Resources:
+  #######################################
+  # Security Groups (in existing VPC)
+  #######################################
+
+  EksClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EKS cluster security group
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub "${ClusterName}-cluster-sg"
+
+  EksNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Worker nodes security group
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub "${ClusterName}-node-sg"
+
+  EksClusterSecurityGroupIngressFromNodes:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EksClusterSecurityGroup
+      IpProtocol: "-1"
+      SourceSecurityGroupId: !Ref EksNodeSecurityGroup
+
+  EksNodeSecurityGroupIngressFromSelf:
+      Type: AWS::EC2::SecurityGroupIngress
+      Properties:
+        GroupId: !Ref EksNodeSecurityGroup
+        IpProtocol: "-1"
+        SourceSecurityGroupId: !Ref EksNodeSecurityGroup
+
+  EksNodeSecurityGroupIngressFromCluster:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+          GroupId: !Ref EksNodeSecurityGroup
+          IpProtocol: "-1"
+          SourceSecurityGroupId: !Ref EksClusterSecurityGroup
+  
+  #######################################
+  # IAM Roles
+  #######################################
+
+  EksClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+      Tags:
+        - Key: Name
+          Value: !Sub "${ClusterName}-cluster-role"
+
+  EksNodeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Path: /
+      Tags:
+        - Key: Name
+          Value: !Sub "${ClusterName}-node-role"
+
+  EksNodeInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EksNodeRole
+      Path: /
+
+  #######################################
+  # EKS Cluster & Node Group
+  #######################################
+
+  EksCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      RoleArn: !GetAtt EksClusterRole.Arn
+      Version: !Ref KubernetesVersion
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EksClusterSecurityGroup
+        SubnetIds:
+          - !Ref Subnet1Id
+          - !Ref Subnet2Id
+        EndpointPublicAccess: true
+        EndpointPrivateAccess: false
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  EksNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EksCluster
+      NodegroupName: !Sub "${EnvironmentName}-ng"
+      NodeRole: !GetAtt EksNodeRole.Arn
+      Subnets:
+        - !Ref Subnet1Id
+        - !Ref Subnet2Id
+      ScalingConfig:
+        DesiredSize: !Ref NodeDesiredCapacity
+        MinSize: !Ref NodeMinSize
+        MaxSize: !Ref NodeMaxSize
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      AmiType: !Ref NodeAmiType
+      DiskSize: 20
+      RemoteAccess:
+        Ec2SshKey: !Ref AWS::NoValue
+      Tags:
+        Environment: !Ref EnvironmentName
+
+  #######################################
+  # Cognito User Pool (User Login)
+  #######################################
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "games-stack-user-pool-${EnvironmentName}"
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${EnvironmentName}-webapp-client"
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+      CallbackURLs:
+        - !Ref WebAppCallbackUrl
+      LogoutURLs:
+        - !Ref WebAppLogoutUrl
+      SupportedIdentityProviders:
+        - COGNITO
+      PreventUserExistenceErrors: ENABLED
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref CognitoUserPool
+
+Outputs:
+  VpcIdOut:
+    Description: VPC ID used by the cluster
+    Value: !Ref VpcId
+
+  SubnetIdsOut:
+    Description: Subnets used by the cluster/nodegroup
+    Value: !Join
+      - ","
+      - - !Ref Subnet1Id
+        - !Ref Subnet2Id
+
+  EksClusterName:
+    Description: EKS cluster name
+    Value: !Ref EksCluster
+
+  EksClusterArn:
+    Description: EKS cluster ARN
+    Value: !GetAtt EksCluster.Arn
+
+  EksNodegroupName:
+    Description: EKS nodegroup name
+    Value: !Ref EksNodeGroup
+
+  CognitoUserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+
+  CognitoUserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref CognitoUserPoolClient
+
+  CognitoHostedUIDomain:
+    Description: Cognito hosted UI domain base URL
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com"
