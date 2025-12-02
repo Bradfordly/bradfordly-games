@@ -5,4 +5,5 @@ parameters:
   Subnet2Id: subnet-0be54c2b14b4e3d73
   WebAppCallbackUrl: https://games.bradfordly.com/oauth2/idpresponse
   WebAppLogoutUrl: https://games.bradfordly.com/logout
+  CognitoDomainPrefix: games-stack-auth
 tags: {}
