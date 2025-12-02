@@ -3,6 +3,16 @@ Description: >
   games.bradfordly.com stack
 
 Parameters:
+  Component:
+    Type: String
+    Default: games-stack
+    Description: Component name for tagging resources
+  
+  Owner:
+    Type: String
+    Default: brad@bradfordly
+    Description: Owner contact for tagging resources
+  
   EnvironmentName:
     Type: String
     Default: dev
@@ -13,33 +23,19 @@ Parameters:
 
   ClusterName:
     Type: String
-    Default: games-stack-eks-cluster
+    Default: games-stack-eks-cluster-${EnvironmentName}
     Description: EKS cluster name
 
   KubernetesVersion:
     Type: String
-    Default: "1.29"
+    Default: "1.34"
     AllowedValues:
-      - "1.27"
-      - "1.28"
-      - "1.29"
+      - "1.34"
+      - "1.33"
+      - "1.32"
+      - "1.31"
+      - "1.30"
 
-  NodeInstanceType:
-    Type: String
-    Default: t3.medium
-    Description: EC2 instance type for worker nodes
-
-  NodeDesiredCapacity:
-    Type: Number
-    Default: 2
-  NodeMinSize:
-    Type: Number
-    Default: 2
-  NodeMaxSize:
-    Type: Number
-    Default: 4
-
-  # Existing networking (typically your default VPC + 2 subnets)
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: ID of the existing VPC (e.g. your default VPC)
@@ -64,17 +60,10 @@ Parameters:
   WebAppCallbackUrl:
     Type: String
     Description: OAuth2 callback URL (e.g. https://example.com/oauth2/idpresponse)
+  
   WebAppLogoutUrl:
     Type: String
     Description: Post-logout URL (e.g. https://example.com/)
-
-  NodeAmiType:
-    Type: String
-    Default: AL2_x86_64
-    AllowedValues:
-      - AL2_x86_64
-      - AL2_x86_64_GPU
-      - AL2_ARM_64
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -92,14 +81,6 @@ Metadata:
           - Subnet1Id
           - Subnet2Id
       - Label:
-          default: EKS Nodes
-        Parameters:
-          - NodeInstanceType
-          - NodeDesiredCapacity
-          - NodeMinSize
-          - NodeMaxSize
-          - NodeAmiType
-      - Label:
           default: Cognito
         Parameters:
           - CognitoDomainPrefix
@@ -107,49 +88,6 @@ Metadata:
           - WebAppLogoutUrl
 
 Resources:
-  #######################################
-  # Security Groups (in existing VPC)
-  #######################################
-
-  EksClusterSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: EKS cluster security group
-      VpcId: !Ref VpcId
-      Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-cluster-sg"
-
-  EksNodeSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Worker nodes security group
-      VpcId: !Ref VpcId
-      Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-node-sg"
-
-  EksClusterSecurityGroupIngressFromNodes:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      GroupId: !Ref EksClusterSecurityGroup
-      IpProtocol: "-1"
-      SourceSecurityGroupId: !Ref EksNodeSecurityGroup
-
-  EksNodeSecurityGroupIngressFromSelf:
-      Type: AWS::EC2::SecurityGroupIngress
-      Properties:
-        GroupId: !Ref EksNodeSecurityGroup
-        IpProtocol: "-1"
-        SourceSecurityGroupId: !Ref EksNodeSecurityGroup
-
-  EksNodeSecurityGroupIngressFromCluster:
-        Type: AWS::EC2::SecurityGroupIngress
-        Properties:
-          GroupId: !Ref EksNodeSecurityGroup
-          IpProtocol: "-1"
-          SourceSecurityGroupId: !Ref EksClusterSecurityGroup
-  
   #######################################
   # IAM Roles
   #######################################
@@ -166,12 +104,15 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-        - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
       Tags:
         - Key: Name
           Value: !Sub "${ClusterName}-cluster-role"
+        - Key: Component
+          Value: !Ref Component
+        - Key: Owner
+          Value: !Ref Owner
 
-  EksNodeRole:
+  FargateExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -179,26 +120,18 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service:
-                - ec2.amazonaws.com
-            Action:
-              - sts:AssumeRole
+              Service: eks-fargate-pods.amazonaws.com
+            Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
-      Path: /
       Tags:
         - Key: Name
-          Value: !Sub "${ClusterName}-node-role"
-
-  EksNodeInstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Roles:
-        - !Ref EksNodeRole
-      Path: /
+          Value: !Sub "${ClusterName}-fargate-execution-role"
+        - Key: Component
+          Value: !Ref Component
+        - Key: Owner
+          Value: !Ref Owner
 
   #######################################
   # EKS Cluster & Node Group
@@ -211,36 +144,14 @@ Resources:
       RoleArn: !GetAtt EksClusterRole.Arn
       Version: !Ref KubernetesVersion
       ResourcesVpcConfig:
-        SecurityGroupIds:
-          - !Ref EksClusterSecurityGroup
         SubnetIds:
           - !Ref Subnet1Id
           - !Ref Subnet2Id
-        EndpointPublicAccess: true
-        EndpointPrivateAccess: false
       Tags:
-        - Key: Environment
-          Value: !Ref EnvironmentName
-
-  EksNodeGroup:
-    Type: AWS::EKS::Nodegroup
-    Properties:
-      ClusterName: !Ref EksCluster
-      NodegroupName: !Sub "${EnvironmentName}-ng"
-      NodeRole: !GetAtt EksNodeRole.Arn
-      Subnets:
-        - !Ref Subnet1Id
-        - !Ref Subnet2Id
-      ScalingConfig:
-        DesiredSize: !Ref NodeDesiredCapacity
-        MinSize: !Ref NodeMinSize
-        MaxSize: !Ref NodeMaxSize
-      InstanceTypes:
-        - !Ref NodeInstanceType
-      AmiType: !Ref NodeAmiType
-      DiskSize: 20
-      Tags:
-        Environment: !Ref EnvironmentName
+        - Key: Component
+          Value: !Ref Component
+        - Key: Owner
+          Value: !Ref Owner
 
   #######################################
   # Cognito User Pool (User Login)
@@ -317,10 +228,6 @@ Outputs:
   EksClusterArn:
     Description: EKS cluster ARN
     Value: !GetAtt EksCluster.Arn
-
-  EksNodegroupName:
-    Description: EKS nodegroup name
-    Value: !Ref EksNodeGroup
 
   CognitoUserPoolId:
     Description: Cognito User Pool ID
