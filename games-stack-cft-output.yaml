@@ -2,8 +2,7 @@ template-file-path: games-stack-cft.yaml
 parameters:
   VpcId: vpc-0db309332b29fbf9b
   SubnetId1: subnet-02e0ab57ae54ee772
-  SubnetId2: subnet-0bf6a70bd3afdf1e7
-  SubnetId3: subnet-0be54c2b14b4e3d73
+  SubnetId2: subnet-0be54c2b14b4e3d73
   WebAppCallbackUrl: https://games.bradfordly.com/oauth2/idpresponse
   WebAppLogoutUrl: https://games.bradfordly.com/logout
   CognitoDomainPrefix: games-stack-auth

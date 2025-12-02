@@ -43,10 +43,6 @@ Parameters:
     Type: AWS::EC2::Subnet::Id
     Description: Second subnet in the VPC (tag appropriately for EKS/ALB)
 
-  SubnetId3:
-    Type: AWS::EC2::Subnet::Id
-    Description: Third subnet in the VPC (tag appropriately for EKS/ALB)
-
   CognitoDomainPrefix:
     Type: String
     Description: >
@@ -146,7 +142,6 @@ Resources:
         SubnetIds:
           - !Ref SubnetId1
           - !Ref SubnetId2
-          - !Ref SubnetId3
       Tags:
         - Key: Component
           Value: !Ref Component
@@ -163,7 +158,6 @@ Resources:
       Subnets:
         - !Ref SubnetId1
         - !Ref SubnetId2
-        - !Ref SubnetId3
       Selectors:
         - Namespace: fargate-ns
 
@@ -234,7 +228,6 @@ Outputs:
       - ","
       - - !Ref SubnetId1
         - !Ref SubnetId2
-        - !Ref SubnetId3
 
   EksClusterName:
     Description: EKS cluster name
