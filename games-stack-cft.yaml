@@ -23,7 +23,7 @@ Parameters:
 
   ClusterName:
     Type: String
-    Default: games-stack-eks-cluster-${EnvironmentName}
+    Default: games-stack-eks-cluster
     Description: EKS cluster name
 
   KubernetesVersion:
@@ -106,7 +106,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
       Tags:
         - Key: Name
-          Value: !Sub "${ClusterName}-cluster-role"
+          Value: !Sub "${ClusterName}-role-${EnvironmentName}"
         - Key: Component
           Value: !Ref Component
         - Key: Owner
@@ -127,7 +127,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       Tags:
         - Key: Name
-          Value: !Sub "${ClusterName}-fargate-execution-role"
+          Value: !Sub "${ClusterName}-fargate-execution-role-${EnvironmentName}"
         - Key: Component
           Value: !Ref Component
         - Key: Owner
@@ -140,7 +140,7 @@ Resources:
   EksCluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: !Ref ClusterName
+      Name: !Sub "${ClusterName}-${EnvironmentName}"
       RoleArn: !GetAtt EksClusterRole.Arn
       Version: !Ref KubernetesVersion
       ResourcesVpcConfig:
