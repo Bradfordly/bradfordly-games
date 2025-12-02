@@ -239,8 +239,6 @@ Resources:
         - !Ref NodeInstanceType
       AmiType: !Ref NodeAmiType
       DiskSize: 20
-      RemoteAccess:
-        Ec2SshKey: !Ref AWS::NoValue
       Tags:
         Environment: !Ref EnvironmentName
 
