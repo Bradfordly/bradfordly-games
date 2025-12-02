@@ -152,7 +152,7 @@ Resources:
     DependsOn: EksCluster
     Type: AWS::EKS::FargateProfile
     Properties:
-      ClusterName: !GetAtt EksCluster.Name
+      ClusterName: !Sub "${Component}-eks-cluster-${EnvironmentName}"
       FargateProfileName: !Sub "${Component}-fargate-profile-${EnvironmentName}"
       PodExecutionRoleArn: !GetAtt FargateExecutionRole.Arn
       Subnets:
