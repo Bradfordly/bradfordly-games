@@ -35,13 +35,17 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     Description: ID of the existing VPC (e.g. your default VPC)
 
-  Subnet1Id:
+  SubnetId1:
     Type: AWS::EC2::Subnet::Id
     Description: First subnet in the VPC (tag appropriately for EKS/ALB)
     
-  Subnet2Id:
+  SubnetId2:
     Type: AWS::EC2::Subnet::Id
     Description: Second subnet in the VPC (tag appropriately for EKS/ALB)
+
+  SubnetId3:
+    Type: AWS::EC2::Subnet::Id
+    Description: Third subnet in the VPC (tag appropriately for EKS/ALB)
 
   CognitoDomainPrefix:
     Type: String
@@ -140,8 +144,9 @@ Resources:
       Version: !Ref KubernetesVersion
       ResourcesVpcConfig:
         SubnetIds:
-          - !Ref Subnet1Id
-          - !Ref Subnet2Id
+          - !Ref SubnetId1
+          - !Ref SubnetId2
+          - !Ref SubnetId3
       Tags:
         - Key: Component
           Value: !Ref Component
@@ -156,8 +161,9 @@ Resources:
       FargateProfileName: !Sub "${Component}-fargate-profile-${EnvironmentName}"
       PodExecutionRoleArn: !GetAtt FargateExecutionRole.Arn
       Subnets:
-        - !Ref Subnet1Id
-        - !Ref Subnet2Id
+        - !Ref SubnetId1
+        - !Ref SubnetId2
+        - !Ref SubnetId3
       Selectors:
         - Namespace: fargate-ns
 
@@ -226,8 +232,9 @@ Outputs:
     Description: Subnets used by the cluster/nodegroup
     Value: !Join
       - ","
-      - - !Ref Subnet1Id
-        - !Ref Subnet2Id
+      - - !Ref SubnetId1
+        - !Ref SubnetId2
+        - !Ref SubnetId3
 
   EksClusterName:
     Description: EKS cluster name
