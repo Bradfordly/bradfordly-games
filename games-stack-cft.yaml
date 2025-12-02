@@ -149,6 +149,7 @@ Resources:
           Value: !Ref Owner
 
   FargateProfile:
+    DependsOn: EksCluster
     Type: AWS::EKS::FargateProfile
     Properties:
       ClusterName: !GetAtt EksCluster.Name
