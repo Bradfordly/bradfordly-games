@@ -27,18 +27,7 @@ Parameters:
   
   S3StagingBucket:
     Type: String
-  
-  # VpcId:
-  #   Type: AWS::EC2::VPC::Id
-  #   Description: ID of the existing VPC (e.g. your default VPC)
-
-  # SubnetId1:
-  #   Type: AWS::EC2::Subnet::Id
-  #   Description: First subnet in the VPC (tag appropriately for EKS/ALB)
-    
-  # SubnetId2:
-  #   Type: AWS::EC2::Subnet::Id
-  #   Description: Second subnet in the VPC (tag appropriately for EKS/ALB)
+    # TODO: call this param from parameter store
 
   CognitoDomainPrefix:
     Type: String
@@ -193,7 +182,7 @@ Resources:
   # Cognito User Pool (User Login)
   #######################################
 
-  # TODO: Set up Cognito after serverless UI is ready
+  # TODO: Set up Cognito after serverless UI is ready - this will move to games-ui module
 
   # CognitoUserPool:
   #   Type: AWS::Cognito::UserPool
@@ -251,6 +240,8 @@ Resources:
   # Route53
   #######################################
 
+  # TODO: create conditional based on EnvironmentName so that dev names it "games-dev.bradfordly.com" and prod names it "games.bradfordly.com"
+  
   GamehostARecord:
     Type: AWS::Route53::RecordSet
     Properties:
