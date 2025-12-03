@@ -28,6 +28,7 @@ Parameters:
   S3StagingBucket:
     Type: String
     # TODO: call this param from parameter store
+    # TODO: setup github action to upload scripts to S3
 
   CognitoDomainPrefix:
     Type: String
