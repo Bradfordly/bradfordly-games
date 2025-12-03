@@ -1,0 +1,6 @@
+template-file-path: games-stack-gamehost-cft.yaml
+parameters:
+  WebAppCallbackUrl: https://games.bradfordly.com/oauth2/idpresponse
+  WebAppLogoutUrl: https://games.bradfordly.com/logout
+  CognitoDomainPrefix: games-stack-auth
+tags: {}
