@@ -124,7 +124,7 @@ Resources:
             Encrypted: 'true'
       Tags:
         - Key: Name
-          Value: !Sub "${Component}-ec2-${Environment}"
+          Value: !Sub "${Component}-ec2-${EnvironmentName}"
 
   #######################################
   # Networking
