@@ -3,49 +3,56 @@ Description: >
   games.bradfordly.com stack
 
 Parameters:
+  EnvironmentName:
+    Type: String
+    Description: A short name for the environment (e.g. dev, prod, feature123)
+    AllowedPattern: "^(dev|prod|feature[0-9]{3})$"
+    ConstraintDescription: |
+      Must be one of the following:
+      - 'feature' followed by 3 digits that corresond to an issue number on github (e.g. feature001, feature010, feature101)
+      - 'dev' for the development branch
+      - 'prod' for the current release branch
+  
   Component:
     Type: String
-    Default: games-stack
     Description: Component name for tagging resources
   
   Owner:
-    Type: String
-    Default: brad@bradfordly
-    Description: Owner contact for tagging resources
-  
-  EnvironmentName:
-    Type: String
-    Default: dev
-    Description: A short name for the environment (e.g. dev, prod)
-    AllowedValues:
-      - dev
-      - prod
-
-  LatestAmiId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id'
+    Description: Owner contact for tagging resources
+    Default: '/gamehost/owner'
+  
+  LatestAmiId:
+    Type: 
+    Description: The latest available AMI ID for the host os
+    Default: '/gamehost/latestAmiId'
+
+  FQDN:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Description: Fully Qualified Domain Name for the host
+    Default: '/gamehost/fqdn'
   
   S3StagingBucket:
-    Type: String
-    # TODO: call this param from parameter store
-    # TODO: setup github action to upload scripts to S3
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Description: S3 staging bucket for scripts, backups, and other assets
+    Default: '/gamehost/s3bucket'
 
   CognitoDomainPrefix:
-    Type: String
+    Type: 'AWS::SSM::Parameter::Value<String>'
     Description: >
       Unique prefix for Cognito hosted UI domain (e.g. mygameapp).
       Must be globally unique within Cognito hosted domains.
-    MinLength: 3
-    MaxLength: 63
-    AllowedPattern: "^[a-z0-9-]+$"
+    Default: '/gameUI/cognitoDomainPrefix'
 
   WebAppCallbackUrl:
-    Type: String
-    Description: OAuth2 callback URL (e.g. https://example.com/oauth2/idpresponse)
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Description: OAuth2 callback URL
+    Default: '/gameUI/webAppCallbackUrl'
   
   WebAppLogoutUrl:
-    Type: String
-    Description: Post-logout URL (e.g. https://example.com/)
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Description: Post-logout URL
+    Default: '/gameUI/webAppLogoutUrl'
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -112,6 +119,20 @@ Resources:
             #!/bin/bash -xe
             aws s3 cp ${S3StagingBucket}/scripts/gamehost /opt/gamehost/scripts
             chmod +x /opt/gamehost/scripts/gamehost-userdata.sh
+            export FQDN="${FQDN:-localhost}"
+            export MYSQL_DB="panel"
+            export MYSQL_USER="pterodactyl"
+            export MYSQL_PASSWORD="TestPassword123!"
+            export timezone="America/New_York"
+            export ASSUME_SSL="false"
+            export CONFIGURE_LETSENCRYPT="false"
+            export CONFIGURE_FIREWALL="true"
+            export email="admin@example.com"
+            export user_email="admin@example.com"
+            export user_username="admin"
+            export user_firstname="Admin"
+            export user_lastname="User"
+            export user_password="TestAdminPassword123!"
             bash . /opt/gamehost/scripts/gamehost-userdata.sh
       InstanceType: m5.large
       ImageId: !Ref LatestAmiId
