@@ -246,12 +246,12 @@ Resources:
   # Route53
   #######################################
   
-  GamehostARecord:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      Name: "gameshost.bradfordly.com"
-      Type: A
-      AliasTarget:
-        HostedZoneId: !Ref HostedZoneId
-        DNSName: !GetAtt GamehostEC2Instance.PublicDnsName
-      HostedZoneId: !Ref HostedZoneId
+  GamehostDNSRecord:
+  Type: AWS::Route53::RecordSet
+  Properties:
+    HostedZoneId: !Ref HostedZoneId
+    Name: gamehost.bradfordly.com
+    Type: CNAME
+    TTL: 60
+    ResourceRecords:
+      - !GetAtt GamehostEC2Instance.PublicDnsName
