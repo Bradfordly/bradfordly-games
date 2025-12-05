@@ -247,11 +247,11 @@ Resources:
   #######################################
   
   GamehostDNSRecord:
-  Type: AWS::Route53::RecordSet
-  Properties:
-    HostedZoneId: !Ref HostedZoneId
-    Name: gamehost.bradfordly.com
-    Type: CNAME
-    TTL: 60
-    ResourceRecords:
-      - !GetAtt GamehostEC2Instance.PublicDnsName
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: gamehost.bradfordly.com
+      Type: CNAME
+      TTL: 60
+      ResourceRecords:
+        - !GetAtt GamehostEC2Instance.PublicDnsName
