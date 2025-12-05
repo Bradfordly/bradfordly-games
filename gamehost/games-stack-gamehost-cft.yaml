@@ -97,7 +97,7 @@ Resources:
       IamInstanceProfile: !Ref GamehostInstanceProfile
       SubnetId: !Ref Subnet
       SecurityGroupIds:
-        - !Ref GamehostSecurityGroup
+        - !GetAtt GamehostSecurityGroup.GroupId
       UserData:
         Fn::Base64:
           !Sub |
