@@ -31,6 +31,11 @@ Parameters:
     Type: 'AWS::SSM::Parameter::Value<String>'
     Description: S3 staging bucket for scripts, backups, and other assets
     Default: '/gamehost/s3bucket'
+
+  HostedZoneId:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Description: Route53 Hosted Zone ID
+    Default: 'coreHostedZone'
   
   # DBPassword:
   #   Type: String
