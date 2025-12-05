@@ -75,7 +75,7 @@ Resources:
     Properties:
       Path: /
       Roles:
-        - !GetAtt GamehostIAMRole.Arn
+        - !Ref GamehostIAMRole
 
   #######################################
   # Compute
