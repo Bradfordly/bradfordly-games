@@ -1,5 +1,5 @@
 template-file-path: games-stack-gamehost-cft.yaml
 parameters:
-  EnvironmentName: 
+  EnvironmentName: dev
   Component: gamehost
 tags: {}

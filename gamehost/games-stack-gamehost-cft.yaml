@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >
-  games.bradfordly.com stack
+  gamehost.bradfordly.com cloudformation stack
 
 Parameters:
   EnvironmentName:
@@ -20,55 +20,29 @@ Parameters:
   Owner:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Description: Owner contact for tagging resources
-    Default: '/gamehost/owner'
+    Default: '/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id'
   
   LatestAmiId:
-    Type: 
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Description: The latest available AMI ID for the host os
-    Default: '/gamehost/latestAmiId'
+    Default: '/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id'
 
-  FQDN:
-    Type: 'AWS::SSM::Parameter::Value<String>'
-    Description: Fully Qualified Domain Name for the host
-    Default: '/gamehost/fqdn'
-  
-  S3StagingBucket:
+  S3Bucket:
     Type: 'AWS::SSM::Parameter::Value<String>'
     Description: S3 staging bucket for scripts, backups, and other assets
     Default: '/gamehost/s3bucket'
-
-  CognitoDomainPrefix:
-    Type: 'AWS::SSM::Parameter::Value<String>'
-    Description: >
-      Unique prefix for Cognito hosted UI domain (e.g. mygameapp).
-      Must be globally unique within Cognito hosted domains.
-    Default: '/gameUI/cognitoDomainPrefix'
-
-  WebAppCallbackUrl:
-    Type: 'AWS::SSM::Parameter::Value<String>'
-    Description: OAuth2 callback URL
-    Default: '/gameUI/webAppCallbackUrl'
   
-  WebAppLogoutUrl:
-    Type: 'AWS::SSM::Parameter::Value<String>'
-    Description: Post-logout URL
-    Default: '/gameUI/webAppLogoutUrl'
+  # DBPassword:
+  #   Type: String
+  #   Description: Database password
+  #   Default: '{{resolve:secretsmanager:/gamehost/dbPassword:password}}'
+  #   NoEcho: true
 
-Metadata:
-  AWS::CloudFormation::Interface:
-    ParameterGroups:
-      # - Label:
-      #     default: Existing Networking
-      #   Parameters:
-      #     - VpcId
-      #     - Subnet1Id
-      #     - Subnet2Id
-      - Label:
-          default: Cognito
-        Parameters:
-          - CognitoDomainPrefix
-          - WebAppCallbackUrl
-          - WebAppLogoutUrl
+  # AdminPassword:
+  #   Type: String
+  #   Description: Admin password
+  #   Default: '{{resolve:secretsmanager:/gamehost/adminPassword:password}}'
+  #   NoEcho: true
 
 Resources:
   #######################################
@@ -78,7 +52,7 @@ Resources:
   GamehostIAMRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${Component}-gamehost-role-${EnvironmentName}"
+      RoleName: !Sub "${Component}-role-${EnvironmentName}"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -117,23 +91,23 @@ Resources:
         Fn::Base64:
           !Sub |
             #!/bin/bash -xe
-            aws s3 cp ${S3StagingBucket}/scripts/gamehost /opt/gamehost/scripts
-            chmod +x /opt/gamehost/scripts/gamehost-userdata.sh
-            export FQDN="${FQDN:-localhost}"
-            export MYSQL_DB="panel"
-            export MYSQL_USER="pterodactyl"
-            export MYSQL_PASSWORD="TestPassword123!"
-            export timezone="America/New_York"
-            export ASSUME_SSL="false"
-            export CONFIGURE_LETSENCRYPT="false"
-            export CONFIGURE_FIREWALL="true"
-            export email="admin@example.com"
-            export user_email="admin@example.com"
-            export user_username="admin"
-            export user_firstname="Admin"
-            export user_lastname="User"
-            export user_password="TestAdminPassword123!"
-            bash . /opt/gamehost/scripts/gamehost-userdata.sh
+            aws s3 cp ${S3Bucket}/${Component}/scripts /opt/${Component}/scripts
+# chmod +x /opt/${Component}/scripts/userdata.sh
+# export FQDN="gamehost.bradfordly.com"
+# export MYSQL_DB="panel"
+# export MYSQL_USER="dbuser"
+# export MYSQL_PASSWORD="${DBPassword}"
+# export timezone="America/New_York"
+# export ASSUME_SSL="false"
+# export CONFIGURE_LETSENCRYPT="false"
+# export CONFIGURE_FIREWALL="true"
+# export email="${Owner}"
+# export user_email="${Owner}"
+# export user_username="admin"
+# export user_firstname="Admin"
+# export user_lastname="User"
+# export user_password="${AdminPassword}"
+# bash . /opt/gamehost/scripts/gamehost-userdata.sh
       InstanceType: m5.large
       ImageId: !Ref LatestAmiId
       BlockDeviceMappings:
@@ -145,7 +119,7 @@ Resources:
             Encrypted: 'true'
       Tags:
         - Key: Name
-          Value: !Sub "${Component}-gamehost-ec2-${Environment}"
+          Value: !Sub "${Component}-ec2-${Environment}"
 
   #######################################
   # Networking
@@ -154,9 +128,24 @@ Resources:
   GamehostSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-        GroupName: "games-stack-gamehost-ec2-access"
+        GroupName: "${Component}-ec2-access"
         GroupDescription: "Allows specific traffic in/out for SSH and game servers"
         SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+            Description: HTTP
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+            CidrIp: 0.0.0.0/0
+            Description: HTTPS
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
+            Description: SSH
           - IpProtocol: udp
             FromPort: 27015
             ToPort: 27015
@@ -182,118 +171,76 @@ Resources:
   # Data
   #######################################
   
-  # GamehostUIS3Bucket:
-  #   Type: AWS::S3::Bucket
-  #   Properties:
-  #     BucketName: !Sub "games.bradfordly.com" # TODO: add conditional based on EnvironmentName
-  #     VersioningConfiguration:
-  #       Status: Enabled
+  GamehostS3Bucket:
+  Type: AWS::S3::Bucket
+  Properties:
+    BucketName: !Ref S3Bucket
+    VersioningConfiguration:
+      Status: Enabled
+    PublicAccessBlockConfiguration:
+      BlockPublicAcls: true
+      BlockPublicPolicy: true
+      IgnorePublicAcls: true
+      RestrictPublicBuckets: true
+    BucketEncryption:
+      ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+          BucketKeyEnabled: true
+    OwnershipControls:
+      Rules:
+        - ObjectOwnership: BucketOwnerEnforced
+    LifecycleConfiguration:
+      Rules:
+        - Id: DeleteOldVersions
+          Status: Enabled
+          NoncurrentVersionExpiration:
+            NoncurrentDays: 90
+        - Id: AbortIncompleteMultipartUploads
+          Status: Enabled
+          AbortIncompleteMultipartUpload:
+            DaysAfterInitiation: 7
 
-  # GamehostUIDynamoDBTable:
-  #   Type: AWS::DynamoDB::Table
-  #   Properties:
-  #     TableName: !Sub "games-stack-ddb-${EnvironmentName}"
-  #     AttributeDefinitions:
-  #       - AttributeName: id
-  #         AttributeType: S
-  #     KeySchema:
-  #       - AttributeName: id
-  #         KeyType: HASH
-
-  #######################################
-  # Cognito User Pool (User Login)
-  #######################################
-
-  # TODO: Set up Cognito after serverless UI is ready - this will move to games-ui module
-
-  # CognitoUserPool:
-  #   Type: AWS::Cognito::UserPool
-  #   Properties:
-  #     UserPoolName: !Sub "games-stack-user-pool-${EnvironmentName}"
-  #     AutoVerifiedAttributes:
-  #       - email
-  #     Policies:
-  #       PasswordPolicy:
-  #         MinimumLength: 8
-  #         RequireLowercase: true
-  #         RequireNumbers: true
-  #         RequireSymbols: false
-  #         RequireUppercase: true
-  #     Schema:
-  #       - Name: email
-  #         Required: true
-  #         Mutable: true
-  #     AccountRecoverySetting:
-  #       RecoveryMechanisms:
-  #         - Name: verified_email
-  #           Priority: 1
-
-  # CognitoUserPoolClient:
-  #   Type: AWS::Cognito::UserPoolClient
-  #   Properties:
-  #     ClientName: !Sub "${EnvironmentName}-webapp-client"
-  #     UserPoolId: !Ref CognitoUserPool
-  #     GenerateSecret: false
-  #     AllowedOAuthFlowsUserPoolClient: true
-  #     AllowedOAuthFlows:
-  #       - code
-  #     AllowedOAuthScopes:
-  #       - email
-  #       - openid
-  #       - profile
-  #     CallbackURLs:
-  #       - !Ref WebAppCallbackUrl
-  #     LogoutURLs:
-  #       - !Ref WebAppLogoutUrl
-  #     SupportedIdentityProviders:
-  #       - COGNITO
-  #     PreventUserExistenceErrors: ENABLED
-  #     ExplicitAuthFlows:
-  #       - ALLOW_REFRESH_TOKEN_AUTH
-  #       - ALLOW_USER_SRP_AUTH
-
-  # CognitoUserPoolDomain:
-  #   Type: AWS::Cognito::UserPoolDomain
-  #   Properties:
-  #     Domain: !Ref CognitoDomainPrefix
-  #     UserPoolId: !Ref CognitoUserPool
+    GamehostS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref GamehostS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: EnforceHTTPS
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt GamehostS3Bucket.Arn
+              - !Sub "${GamehostS3Bucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+          - Sid: AllowGamehostRole
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt GamehostIAMRole.Arn
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:ListBucket"
+              - "s3:DeleteObject"
+            Resource:
+              - !GetAtt GamehostS3Bucket.Arn
+              - !Sub "${GamehostS3Bucket.Arn}/*"
 
   #######################################
   # Route53
   #######################################
-
-  # TODO: create conditional based on EnvironmentName so that dev names it "games-dev.bradfordly.com" and prod names it "games.bradfordly.com"
   
   GamehostARecord:
     Type: AWS::Route53::RecordSet
     Properties:
-      Name: !Sub "${EnvironmentName}.games.bradfordly.com"
+      Name: "gameshost.bradfordly.com"
       Type: A
       AliasTarget:
         HostedZoneId: !Ref HostedZoneId
         DNSName: !GetAtt GamehostEC2Instance.PublicDnsName
       HostedZoneId: !Ref HostedZoneId
-
-Outputs:
-  # VpcIdOut:
-  #   Description: VPC ID used by the cluster
-  #   Value: !Ref VpcId
-
-  # SubnetIdsOut:
-  #   Description: Subnets used by the cluster/nodegroup
-  #   Value: !Join
-  #     - ","
-  #     - - !Ref SubnetId1
-  #       - !Ref SubnetId2
-
-  # CognitoUserPoolId:
-  #   Description: Cognito User Pool ID
-  #   Value: !Ref CognitoUserPool
-
-  # CognitoUserPoolClientId:
-  #   Description: Cognito User Pool Client ID
-  #   Value: !Ref CognitoUserPoolClient
-
-  # CognitoHostedUIDomain:
-  #   Description: Cognito hosted UI domain base URL
-  #   Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com"

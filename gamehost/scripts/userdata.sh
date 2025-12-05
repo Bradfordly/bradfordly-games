@@ -16,7 +16,7 @@ SNS_TOPIC_ARN=$(aws ssm get-parameter --name "/snsTopicArn" --with-decryption --
 # ============================================================
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a /var/log/pterodactyl-userdata.log
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a /var/log/gamehost-userdata.log
 }
 
 send_sns_notification() {
@@ -55,7 +55,7 @@ Admin Email: $user_email"
 # Main Installation
 # ============================================================
 
-log "Starting Pterodactyl Panel installation..."
+log "starting pterodactyl panel installation..."
 
 # Update FQDN to use public IP if set to localhost
 if [ "$FQDN" == "localhost" ]; then
@@ -63,20 +63,7 @@ if [ "$FQDN" == "localhost" ]; then
     PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4 || echo "")
     if [ -n "$PUBLIC_IP" ]; then
         export FQDN="$PUBLIC_IP"
-        log "FQDN set to public IP: $FQDN"
-    fi
-fi
-
-# Install AWS CLI if not present (for SNS notifications)
-if ! command -v aws &> /dev/null; then
-    log "Installing AWS CLI..."
-    if command -v apt-get &> /dev/null; then
-        apt-get update -y
-        apt-get install -y awscli
-    elif command -v dnf &> /dev/null; then
-        dnf install -y awscli
-    elif command -v yum &> /dev/null; then
-        yum install -y awscli
+        log "fqdn set to: $FQDN"
     fi
 fi
 
@@ -84,7 +71,7 @@ fi
 send_sns_notification "Pterodactyl Installation Started" "Installation process has begun on the EC2 instance."
 
 # Run the Pterodactyl installer
-log "Downloading and running Pterodactyl installer..."
+log "downloading and running pterodactyl installer..."
 
 # Download the installer script
 curl -sSL -o /tmp/pterodactyl-install.sh https://pterodactyl-installer.se
@@ -99,7 +86,7 @@ curl -sSL -o /tmp/lib.sh "$GITHUB_BASE_URL/master/lib/lib.sh"
 source /tmp/lib.sh
 
 # Run the panel installer directly (non-interactive)
-log "Running panel installer..."
+log "running panel installer..."
 if bash <(curl -sSL "$GITHUB_BASE_URL/$GITHUB_SOURCE/installers/panel.sh"); then
     INSTALL_STATUS="SUCCESS"
     INSTALL_MESSAGE="Pterodactyl Panel has been successfully installed!
