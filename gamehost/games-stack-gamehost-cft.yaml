@@ -172,66 +172,64 @@ Resources:
   #######################################
   
   GamehostS3Bucket:
-  Type: AWS::S3::Bucket
-  Properties:
-    BucketName: !Ref S3Bucket
-    VersioningConfiguration:
-      Status: Enabled
-    PublicAccessBlockConfiguration:
-      BlockPublicAcls: true
-      BlockPublicPolicy: true
-      IgnorePublicAcls: true
-      RestrictPublicBuckets: true
-    BucketEncryption:
-      ServerSideEncryptionConfiguration:
-        - ServerSideEncryptionByDefault:
-            SSEAlgorithm: AES256
-          BucketKeyEnabled: true
-    OwnershipControls:
-      Rules:
-        - ObjectOwnership: BucketOwnerEnforced
-    # LifecycleConfiguration:
-    #   Rules:
-    #     - Id: DeleteOldVersions
-    #       Status: Enabled
-    #       Filter: {}
-    #       NoncurrentVersionExpiration:
-    #         NoncurrentDays: 90
-    #     - Id: AbortIncompleteMultipartUploads
-    #       Status: Enabled
-    #       Filter: {}
-    #       AbortIncompleteMultipartUpload:
-    #         DaysAfterInitiation: 7
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3Bucket
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+          - Id: AbortIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
 
     GamehostS3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref GamehostS3Bucket
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: EnforceHTTPS
-            Effect: Deny
-            Principal: "*"
-            Action: "s3:*"
-            Resource:
-              - !GetAtt GamehostS3Bucket.Arn
-              - !Sub "${GamehostS3Bucket.Arn}/*"
-            Condition:
-              Bool:
-                "aws:SecureTransport": "false"
-          - Sid: AllowGamehostRole
-            Effect: Allow
-            Principal:
-              AWS: !GetAtt GamehostIAMRole.Arn
-            Action:
-              - "s3:GetObject"
-              - "s3:PutObject"
-              - "s3:ListBucket"
-              - "s3:DeleteObject"
-            Resource:
-              - !GetAtt GamehostS3Bucket.Arn
-              - !Sub "${GamehostS3Bucket.Arn}/*"
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref GamehostS3Bucket
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: EnforceHTTPS
+              Effect: Deny
+              Principal: "*"
+              Action: "s3:*"
+              Resource:
+                - !GetAtt GamehostS3Bucket.Arn
+                - !Sub "${GamehostS3Bucket.Arn}/*"
+              Condition:
+                Bool:
+                  "aws:SecureTransport": "false"
+            - Sid: AllowGamehostRole
+              Effect: Allow
+              Principal:
+                AWS: !GetAtt GamehostIAMRole.Arn
+              Action:
+                - "s3:GetObject"
+                - "s3:PutObject"
+                - "s3:ListBucket"
+                - "s3:DeleteObject"
+              Resource:
+                - !GetAtt GamehostS3Bucket.Arn
+                - !Sub "${GamehostS3Bucket.Arn}/*"
 
   #######################################
   # Route53
