@@ -1,4 +1,4 @@
-template-file-path: games-stack-gamehost-cft.yaml
+template-file-path: gamehost/games-stack-gamehost-cft.yaml
 parameters:
   EnvironmentName: dev
   Component: gamehost
