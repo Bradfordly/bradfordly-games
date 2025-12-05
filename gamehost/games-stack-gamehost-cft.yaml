@@ -94,7 +94,7 @@ Resources:
   GamehostEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      IamInstanceProfile: !Ref GamehostInstanceProfile
+      IamInstanceProfile: !GetAtt GamehostInstanceProfile.Id
       SubnetId: !Ref Subnet
       SecurityGroupIds:
         - !Ref GamehostSecurityGroup
