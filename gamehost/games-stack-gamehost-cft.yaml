@@ -27,6 +27,11 @@ Parameters:
     Description: The latest available AMI ID for the host os
     Default: '/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id'
 
+  Subnet:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Description: Subnet ID
+    Default: '/gamehost/subnet'
+  
   S3Bucket:
     Type: 'AWS::SSM::Parameter::Value<String>'
     Description: S3 staging bucket for scripts, backups, and other assets
@@ -90,6 +95,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref GamehostInstanceProfile
+      SubnetId: !Ref Subnet
       SecurityGroups:
         - !Ref GamehostSecurityGroup
       UserData:
