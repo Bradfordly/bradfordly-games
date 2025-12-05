@@ -194,10 +194,12 @@ Resources:
       Rules:
         - Id: DeleteOldVersions
           Status: Enabled
+          Filter: {}
           NoncurrentVersionExpiration:
             NoncurrentDays: 90
         - Id: AbortIncompleteMultipartUploads
           Status: Enabled
+          Filter: {}
           AbortIncompleteMultipartUpload:
             DaysAfterInitiation: 7
 
