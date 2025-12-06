@@ -261,11 +261,6 @@ Resources:
       TTL: 60
       ResourceRecords:
         - !GetAtt GamehostEC2Instance.PublicDnsName
-      Tags:
-        - Key: Module
-          Value: ${Component}
-        - Key: Owner
-          Value: ${Owner}
   
   GamepanelDNSRecord:
     Type: AWS::Route53::RecordSet
@@ -276,8 +271,5 @@ Resources:
       TTL: 60
       ResourceRecords:
         - !GetAtt GamehostEC2Instance.PublicDnsName
-      Tags:
-        - Key: Module
-          Value: ${Component}
-        - Key: Owner
+
           Value: ${Owner}
