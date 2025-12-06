@@ -252,11 +252,6 @@ Resources:
             Resource:
               - !GetAtt GamehostS3Bucket.Arn
               - !Sub "${GamehostS3Bucket.Arn}/*"
-      Tags:
-        - Key: Module
-          Value: ${Component}
-        - Key: Owner
-          Value: ${Owner}
 
   #######################################
   # Route53
