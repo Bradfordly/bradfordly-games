@@ -98,27 +98,7 @@ Resources:
       SubnetId: !Ref Subnet
       SecurityGroupIds:
         - !GetAtt GamehostSecurityGroup.GroupId
-      UserData:
-        Fn::Base64:
-          !Sub |
-            #!/bin/bash -xe
-            aws s3 cp ${S3Bucket}/${Component}/scripts /opt/${Component}/scripts
-# chmod +x /opt/${Component}/scripts/userdata.sh
-# export FQDN="gamehost.bradfordly.com"
-# export MYSQL_DB="panel"
-# export MYSQL_USER="dbuser"
-# export MYSQL_PASSWORD="${DBPassword}"
-# export timezone="America/New_York"
-# export ASSUME_SSL="false"
-# export CONFIGURE_LETSENCRYPT="false"
-# export CONFIGURE_FIREWALL="true"
-# export email="${Owner}"
-# export user_email="${Owner}"
-# export user_username="admin"
-# export user_firstname="Admin"
-# export user_lastname="User"
-# export user_password="${AdminPassword}"
-# bash . /opt/gamehost/scripts/gamehost-userdata.sh
+      
       InstanceType: m5.large
       ImageId: !Ref LatestAmiId
       BlockDeviceMappings:
@@ -131,7 +111,33 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Component}-ec2-${EnvironmentName}"
-
+        - Key: Module
+          Value: ${Component}
+        - Key: Owner
+          Value: ${Owner}
+      # TODO: UserData: 
+      #   Fn::Base64:
+      #     !Sub |
+      #       #!/bin/bash -xe
+      #       aws s3 cp ${S3Bucket}/${Component}/scripts /opt/${Component}/scripts
+      #       chmod +x /opt/${Component}/scripts/userdata.sh
+      #       export FQDN_HOST="gamehost.bradfordly.com"
+      #       export FQDN_PANEL="gamepanel.bradfordly.com"
+      #       export MYSQL_DB="panel"
+      #       export MYSQL_USER="dbuser"
+      #       export MYSQL_PASSWORD="${DBPassword}"
+      #       export timezone="America/New_York"
+      #       export ASSUME_SSL="false"
+      #       export CONFIGURE_LETSENCRYPT="true"
+      #       export CONFIGURE_FIREWALL="true"
+      #       export email="${Owner}"
+      #       export user_email="${Owner}"
+      #       export user_username="admin"
+      #       export user_firstname="Admin"
+      #       export user_lastname="User"
+      #       export user_password="${AdminPassword}"
+      #       bash . /opt/gamehost/scripts/gamehost-userdata.sh
+  
   #######################################
   # Networking
   #######################################
@@ -152,11 +158,6 @@ Resources:
             ToPort: 443
             CidrIp: 0.0.0.0/0
             Description: HTTPS
-          - IpProtocol: tcp
-            FromPort: 22
-            ToPort: 22
-            CidrIp: 0.0.0.0/0
-            Description: SSH
           - IpProtocol: udp
             FromPort: 27015
             ToPort: 27015
@@ -177,6 +178,11 @@ Resources:
             ToPort: 1985
             CidrIp: 0.0.0.0/0
             Description: Palworld2
+        Tags:
+          - Key: Module
+            Value: ${Component}
+          - Key: Owner
+            Value: ${Owner}
 
   #######################################
   # Data
@@ -211,6 +217,11 @@ Resources:
             Status: Enabled
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 7
+      Tags:
+        - Key: Module
+          Value: ${Component}
+        - Key: Owner
+          Value: ${Owner}
 
   GamehostS3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -241,6 +252,11 @@ Resources:
             Resource:
               - !GetAtt GamehostS3Bucket.Arn
               - !Sub "${GamehostS3Bucket.Arn}/*"
+      Tags:
+        - Key: Module
+          Value: ${Component}
+        - Key: Owner
+          Value: ${Owner}
 
   #######################################
   # Route53
@@ -255,3 +271,23 @@ Resources:
       TTL: 60
       ResourceRecords:
         - !GetAtt GamehostEC2Instance.PublicDnsName
+      Tags:
+        - Key: Module
+          Value: ${Component}
+        - Key: Owner
+          Value: ${Owner}
+  
+  GamepanelDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: gamepanel.bradfordly.com
+      Type: CNAME
+      TTL: 60
+      ResourceRecords:
+        - !GetAtt GamehostEC2Instance.PublicDnsName
+      Tags:
+        - Key: Module
+          Value: ${Component}
+        - Key: Owner
+          Value: ${Owner}

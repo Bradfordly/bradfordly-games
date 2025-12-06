@@ -6,19 +6,15 @@ on:
       region:
         description: 'AWS Region'
         required: true
-        default: 'eu-west-1'
-      keypair:
-        description: 'SSH Key Pair'
-        required: true
 
 jobs:
-  cluster:
-    name: Deploy stack to AWS
+  gamehost:
+    name: Deploy scripts to AWS
     runs-on: ubuntu-latest
     outputs:
       env-name: ${{ steps.env-name.outputs.environment }}
     steps:
-    - name: Checkout
+    - name: Code Checkout
       uses: actions/checkout@v2
 
     - name: Configure AWS credentials
