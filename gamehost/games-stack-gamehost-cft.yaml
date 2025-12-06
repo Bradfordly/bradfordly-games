@@ -271,5 +271,3 @@ Resources:
       TTL: 60
       ResourceRecords:
         - !GetAtt GamehostEC2Instance.PublicDnsName
-
-          Value: ${Owner}
