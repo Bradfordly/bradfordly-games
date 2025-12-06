@@ -158,6 +158,16 @@ Resources:
             ToPort: 443
             CidrIp: 0.0.0.0/0
             Description: HTTPS
+          - IpProtocol: tcp
+            FromPort: 8080
+            ToPort: 8080
+            CidrIp: 0.0.0.0/0
+            Description: Ptero
+          - IpProtocol: tcp
+            FromPort: 2022
+            ToPort: 2022
+            CidrIp: 0.0.0.0/0
+            Description: Ptero2
           - IpProtocol: udp
             FromPort: 27015
             ToPort: 27015
