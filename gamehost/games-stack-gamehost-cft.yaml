@@ -37,23 +37,6 @@ Parameters:
     Description: S3 staging bucket for scripts, backups, and other assets
     Default: '/gamehost/s3bucket'
 
-  HostedZoneId:
-    Type: 'AWS::SSM::Parameter::Value<String>'
-    Description: Route53 Hosted Zone ID
-    Default: 'coreHostedZone'
-  
-  # DBPassword:
-  #   Type: String
-  #   Description: Database password
-  #   Default: '{{resolve:secretsmanager:/gamehost/dbPassword:password}}'
-  #   NoEcho: true
-
-  # AdminPassword:
-  #   Type: String
-  #   Description: Admin password
-  #   Default: '{{resolve:secretsmanager:/gamehost/adminPassword:password}}'
-  #   NoEcho: true
-
 Resources:
   #######################################
   # Access
@@ -99,22 +82,22 @@ Resources:
       SecurityGroupIds:
         - !GetAtt GamehostSecurityGroup.GroupId
       
-      InstanceType: m5.large
+      InstanceType: m7i.xlarge
       ImageId: !Ref LatestAmiId
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
             VolumeType: gp2
-            VolumeSize: '30'
+            VolumeSize: '50'
             DeleteOnTermination: 'true'
             Encrypted: 'true'
       Tags:
         - Key: Name
           Value: !Sub "${Component}-ec2-${EnvironmentName}"
         - Key: Module
-          Value: ${Component}
+          Value: !Ref Component
         - Key: Owner
-          Value: ${Owner}
+          Value: !Ref Owner
       # TODO: UserData: 
       #   Fn::Base64:
       #     !Sub |
@@ -145,7 +128,7 @@ Resources:
   GamehostSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-        GroupName: "${Component}-ec2-access"
+        GroupName: !Sub "${Component}-ec2-access"
         GroupDescription: "Allows specific traffic in/out for SSH and game servers"
         SecurityGroupIngress:
           - IpProtocol: tcp
@@ -162,12 +145,12 @@ Resources:
             FromPort: 8080
             ToPort: 8080
             CidrIp: 0.0.0.0/0
-            Description: Ptero
+            Description: HTTP2
           - IpProtocol: tcp
             FromPort: 2022
             ToPort: 2022
             CidrIp: 0.0.0.0/0
-            Description: Ptero2
+            Description: SFTP
           - IpProtocol: udp
             FromPort: 27015
             ToPort: 27015
@@ -190,9 +173,9 @@ Resources:
             Description: Palworld2
         Tags:
           - Key: Module
-            Value: ${Component}
+            Value: !Ref Component
           - Key: Owner
-            Value: ${Owner}
+            Value: !Ref Owner
 
   #######################################
   # Data
@@ -257,27 +240,3 @@ Resources:
             Resource:
               - !GetAtt GamehostS3Bucket.Arn
               - !Sub "${GamehostS3Bucket.Arn}/*"
-
-  #######################################
-  # Route53
-  #######################################
-  
-  GamehostDNSRecord:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      HostedZoneId: !Ref HostedZoneId
-      Name: gamehost.bradfordly.com
-      Type: CNAME
-      TTL: 60
-      ResourceRecords:
-        - !GetAtt GamehostEC2Instance.PublicDnsName
-  
-  GamepanelDNSRecord:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      HostedZoneId: !Ref HostedZoneId
-      Name: gamepanel.bradfordly.com
-      Type: CNAME
-      TTL: 60
-      ResourceRecords:
-        - !GetAtt GamehostEC2Instance.PublicDnsName
