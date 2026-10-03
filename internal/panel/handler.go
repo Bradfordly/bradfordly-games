@@ -16,6 +16,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /logout", s.handleLogout)
 	mux.HandleFunc("GET /denied", s.handleDenied)
 	mux.HandleFunc("GET /{$}", s.handleHome)
+	mux.HandleFunc("GET /api/worlds", s.handleListWorlds)
+	mux.HandleFunc("POST /api/worlds", s.handleCreateWorld)
+	mux.HandleFunc("GET /api/worlds/{id}", s.handleGetWorld)
+	mux.HandleFunc("PATCH /api/worlds/{id}", s.handlePatchWorld)
 	return s.requireSession(mux)
 }
 
