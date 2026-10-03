@@ -82,5 +82,32 @@ class EksFargateCluster(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
+class EfsWorldSaves(unittest.TestCase):
+    def test_access_point_convention(self) -> None:
+        efs = (INFRA / "efs.tf").read_text()
+        self.assertIn("aws_efs_file_system", efs)
+        self.assertIn("aws_efs_access_point", efs)
+        self.assertIn("/worlds/${each.value}", efs)
+        self.assertIn("owner_uid   = 1000", efs)
+        self.assertIn("owner_gid   = 1000", efs)
+        self.assertIn("var.world_ids", efs)
+
+    def test_mount_targets_are_private(self) -> None:
+        efs = (INFRA / "efs.tf").read_text()
+        self.assertIn("aws_efs_mount_target", efs)
+        self.assertIn("aws_subnet.private", efs)
+        self.assertNotIn("aws_subnet.public", efs)
+
+    def test_static_pv_example(self) -> None:
+        example = (INFRA / "k8s" / "examples" / "world-save.yaml").read_text()
+        self.assertIn("namespace: games-worlds", example)
+        self.assertIn("efs.csi.aws.com", example)
+        self.assertIn("FILE_SYSTEM_ID::ACCESS_POINT_ID", example)
+        self.assertIn("storageClassName: efs-static", example)
+        self.assertNotIn("kind: StatefulSet", example)
+        self.assertNotIn("kind: Deployment", example)
+
+
 if __name__ == "__main__":
     unittest.main()
+
