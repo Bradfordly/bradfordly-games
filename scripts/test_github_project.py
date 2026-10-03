@@ -26,8 +26,11 @@ class Rules(unittest.TestCase):
             ["documentation", "config change", "bug fix", "feature"],
         )
 
-    def test_issue_templates_use_those_labels(self) -> None:
+    def test_issue_templates_do_not_apply_category_labels(self) -> None:
         self.assertEqual(issue_templates_use_known_labels(), [])
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn("Do not add a category label", rules)
+        self.assertIn("until that label is present", rules)
 
     def test_agents_cannot_approve_pull_requests(self) -> None:
         rules = (ROOT / "AGENTS.md").read_text()
@@ -50,19 +53,27 @@ class Rules(unittest.TestCase):
 class BoardRules(unittest.TestCase):
     def test_status_follows_assignment_and_pull_requests(self) -> None:
         self.assertEqual(
-            desired_status(assignee_count=0, has_open_pr=False),
+            desired_status(assignee_count=0, has_open_pr=False, has_category_label=False),
             STATUS_BACKLOG,
         )
         self.assertEqual(
-            desired_status(assignee_count=1, has_open_pr=False),
+            desired_status(assignee_count=1, has_open_pr=False, has_category_label=False),
+            STATUS_BACKLOG,
+        )
+        self.assertEqual(
+            desired_status(assignee_count=0, has_open_pr=False, has_category_label=True),
+            STATUS_BACKLOG,
+        )
+        self.assertEqual(
+            desired_status(assignee_count=1, has_open_pr=False, has_category_label=True),
             STATUS_IN_PROGRESS,
         )
         self.assertEqual(
-            desired_status(assignee_count=1, has_open_pr=True),
+            desired_status(assignee_count=1, has_open_pr=True, has_category_label=True),
             STATUS_REVIEW,
         )
         self.assertEqual(
-            desired_status(assignee_count=0, has_open_pr=True),
+            desired_status(assignee_count=0, has_open_pr=True, has_category_label=False),
             STATUS_REVIEW,
         )
 
@@ -142,12 +153,19 @@ class FakeBoard:
         return list(self.prs.get(pr_number, []))
 
 
-def issue(number: int, assignees: int, prs: list[str] | None = None, state: str = "OPEN") -> dict:
+def issue(
+    number: int,
+    assignees: int,
+    prs: list[str] | None = None,
+    state: str = "OPEN",
+    labels: list[str] | None = None,
+) -> dict:
     return {
         "id": f"issue-{number}",
         "number": number,
         "state": state,
         "assignees": {"totalCount": assignees},
+        "labels": {"nodes": [{"name": name} for name in (labels or [])]},
         "closedByPullRequestsReferences": {
             "nodes": [{"state": pr_state} for pr_state in (prs or [])]
         },
@@ -166,11 +184,21 @@ class Sync(unittest.TestCase):
         self.assertEqual(result, ["#7 Backlog"])
         self.assertEqual(board.statuses["item-issue-7"], STATUS_BACKLOG)
 
-    def test_assignment_moves_the_issue_in_progress(self) -> None:
+    def test_assignment_without_a_category_label_stays_in_backlog(self) -> None:
         board = FakeBoard()
         board.issues[7] = issue(7, 1)
         sync_event(
             {"action": "assigned", "issue": {"number": 7}},
+            "issues",
+            board,  # type: ignore[arg-type]
+        )
+        self.assertEqual(board.statuses["item-issue-7"], STATUS_BACKLOG)
+
+    def test_assignment_after_a_category_label_moves_the_issue_in_progress(self) -> None:
+        board = FakeBoard()
+        board.issues[7] = issue(7, 1, labels=["feature"])
+        sync_event(
+            {"action": "labeled", "issue": {"number": 7}},
             "issues",
             board,  # type: ignore[arg-type]
         )
@@ -213,7 +241,7 @@ class Sync(unittest.TestCase):
 
     def test_closed_unmerged_pull_request_returns_assigned_work_to_in_progress(self) -> None:
         board = FakeBoard()
-        board.issues[7] = issue(7, 1, prs=[])
+        board.issues[7] = issue(7, 1, prs=[], labels=["bug fix"])
         sync_event(
             {
                 "action": "closed",

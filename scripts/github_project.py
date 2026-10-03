@@ -37,13 +37,13 @@ STATUS_SPECS = (
     {
         "name": STATUS_BACKLOG,
         "color": "GRAY",
-        "description": "No assignee yet. Work has not started.",
+        "description": "Waiting for a category label, or labeled and not yet assigned.",
         "aliases": (STATUS_BACKLOG, "Todo"),
     },
     {
         "name": STATUS_IN_PROGRESS,
         "color": "YELLOW",
-        "description": "An agent is assigned and the work is underway.",
+        "description": "A category label is set and an agent is assigned.",
         "aliases": (STATUS_IN_PROGRESS, "In Progress"),
     },
     {
@@ -55,10 +55,15 @@ STATUS_SPECS = (
 )
 
 
-def desired_status(*, assignee_count: int, has_open_pr: bool) -> str:
+def has_category_label(label_names: list[str]) -> bool:
+    categories = {label["name"] for label in load_labels()}
+    return any(name in categories for name in label_names)
+
+
+def desired_status(*, assignee_count: int, has_open_pr: bool, has_category_label: bool) -> str:
     if has_open_pr:
         return STATUS_REVIEW
-    if assignee_count > 0:
+    if assignee_count > 0 and has_category_label:
         return STATUS_IN_PROGRESS
     return STATUS_BACKLOG
 
@@ -146,21 +151,14 @@ def protection_body() -> dict[str, Any]:
 
 
 def issue_templates_use_known_labels() -> list[str]:
-    """Return template labels that are not in the category set."""
-    allowed = {label["name"] for label in load_labels()}
-    unknown: list[str] = []
+    """Category labels are applied by the owner, not by an issue template."""
+    preset: list[str] = []
     template_dir = REPO_ROOT / ".github" / "ISSUE_TEMPLATE"
     for path in sorted(template_dir.glob("*.md")):
         text = path.read_text()
-        match = re.search(r"^labels:\s*\[(.*)\]\s*$", text, re.MULTILINE)
-        if not match:
-            unknown.append(f"{path.name}: missing labels")
-            continue
-        for raw in match.group(1).split(","):
-            name = raw.strip().strip("\"'")
-            if name not in allowed:
-                unknown.append(f"{path.name}: {name}")
-    return unknown
+        if re.search(r"^labels:\s*", text, re.MULTILINE):
+            preset.append(f"{path.name}: sets labels")
+    return preset
 
 
 class GithubError(RuntimeError):
@@ -526,6 +524,7 @@ class BoardClient:
                   number
                   state
                   assignees { totalCount }
+                  labels(first: 20) { nodes { name } }
                   closedByPullRequestsReferences(first: 20) {
                     nodes { state }
                   }
@@ -582,9 +581,11 @@ def place_issue(client: BoardClient, issue: dict[str, Any]) -> str:
         for pr in issue["closedByPullRequestsReferences"]["nodes"]
         if pr["state"] == "OPEN"
     ]
+    label_names = [node["name"] for node in issue["labels"]["nodes"]]
     status = desired_status(
         assignee_count=issue["assignees"]["totalCount"],
         has_open_pr=bool(open_prs),
+        has_category_label=has_category_label(label_names),
     )
     client.set_status(item_id, status)
     return status

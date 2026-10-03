@@ -12,12 +12,12 @@ This repository tracks work on a GitHub Project board named `bradfordly-games`. 
 
 ## Issues
 
-- Open an issue before starting work. Use exactly one category label: `documentation`, `config change`, `bug fix`, or `feature`.
-- New issues stay in **Backlog** while they have no assignee.
-- Assign yourself when you start the work. That moves the issue to **In-Progress**. Do not start implementation while the issue is unassigned.
+- Open an issue before starting work. Do not add a category label, and do not assign anyone. New issues stay in **Backlog**.
+- @Bradfordly applies exactly one category label: `documentation`, `config change`, `bug fix`, or `feature`. That label is the gate. It chooses which kind of agent may take the issue.
+- Do not assign an agent, and do not start implementation, until that label is present. After @Bradfordly adds the label, the matching agent may be assigned. Assignment moves the issue to **In-Progress**. An assignee without a category label leaves the issue in **Backlog**.
 - When the pull request to `main` is open, the issue moves to **Review**.
 - After @Bradfordly merges the pull request, the linked issue is closed. Do not close an issue while its pull request is still open.
-- Do not open implementation issues until the design has been agreed and split into tasks. A `documentation` issue is appropriate for a design note that needs review.
+- Do not open implementation issues until the design has been agreed and split into tasks. A design note still waits for @Bradfordly to apply the `documentation` label.
 
 ## Board automation
 
