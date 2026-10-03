@@ -1,0 +1,44 @@
+output "cluster_name" {
+  description = "EKS cluster name."
+  value       = aws_eks_cluster.this.name
+}
+
+output "cluster_endpoint" {
+  description = "EKS API endpoint."
+  value       = aws_eks_cluster.this.endpoint
+}
+
+output "cluster_security_group_id" {
+  description = "Cluster security group used by Fargate pod ENIs."
+  value       = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+}
+
+output "oidc_issuer" {
+  description = "OIDC issuer URL for later IRSA (EFS CSI, load balancers)."
+  value       = aws_eks_cluster.this.identity[0].oidc[0].issuer
+}
+
+output "region" {
+  description = "AWS region of the cluster."
+  value       = var.region
+}
+
+output "vpc_id" {
+  description = "VPC that holds the cluster."
+  value       = aws_vpc.this.id
+}
+
+output "private_subnet_ids" {
+  description = "Private subnets used by Fargate profiles."
+  value       = [for subnet in aws_subnet.private : subnet.id]
+}
+
+output "public_subnet_ids" {
+  description = "Public subnets for NAT and later ALB/NLB."
+  value       = [for subnet in aws_subnet.public : subnet.id]
+}
+
+output "namespaces" {
+  description = "Application namespaces created on the cluster."
+  value       = [for ns in kubernetes_namespace.this : ns.metadata[0].name]
+}
