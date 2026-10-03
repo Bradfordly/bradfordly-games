@@ -21,6 +21,7 @@ type Config struct {
 	Store         world.Store
 	States        States
 	Reconcile     Reconciler
+	Gateway       Gateway
 }
 
 // Server is the authenticated control plane.
@@ -68,6 +69,9 @@ func New(cfg Config) *Server {
 	}
 	if cfg.Reconcile == nil {
 		cfg.Reconcile = sleepingReconcilerFromEnv()
+	}
+	if cfg.Gateway == nil {
+		cfg.Gateway = &MemoryGateway{}
 	}
 	return &Server{cfg: cfg}
 }

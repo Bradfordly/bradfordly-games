@@ -21,6 +21,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/worlds", s.handleCreateWorld)
 	mux.HandleFunc("GET /api/worlds/{id}", s.handleGetWorld)
 	mux.HandleFunc("PATCH /api/worlds/{id}", s.handlePatchWorld)
+	mux.HandleFunc("POST /api/worlds/{id}/power", s.handlePower)
 	return s.requireSession(mux)
 }
 
