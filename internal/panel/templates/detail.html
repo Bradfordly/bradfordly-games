@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{.Name}}</title>
+</head>
+<body>
+  <p><a href="/">World list</a></p>
+  <h1>{{.Name}}</h1>
+  <p>Game: {{.Game}}</p>
+  <p>Allocation: {{.AllocationString}}</p>
+  <p>State: {{template "state" .}}</p>
+  <p>Players: {{if .PlayerCount}}{{.PlayerCount}}{{else}}0{{end}}</p>
+  <p>Last wake: {{if .LastWake}}{{.LastWake}}{{else}}—{{end}}</p>
+  {{if .LastError}}<p class="failed">Last error: {{.LastError}}</p>{{end}}
+  {{if .Transitions}}
+  <h2>Recent transitions</h2>
+  <ul>
+    {{range .Transitions}}<li>{{.}}</li>{{end}}
+  </ul>
+  {{end}}
+
+  <h2>Settings</h2>
+  <form id="settings">
+    <label>Display name <input name="name" value="{{.Name}}"></label>
+    <label>Idle timeout <input name="idle_timeout" value="{{.IdleTimeout}}"></label>
+    <label>Asleep MOTD <input name="asleep_motd" value="{{.AsleepMOTD}}"></label>
+    <label>Starting MOTD <input name="starting_motd" value="{{.StartingMOTD}}"></label>
+    <button type="submit">Save</button>
+  </form>
+
+  <h2>Power</h2>
+  <button type="button" id="start">Start</button>
+  <button type="button" id="stop" data-players="{{if .PlayerCount}}{{.PlayerCount}}{{else}}0{{end}}">Stop</button>
+  <p>Stop while players are online asks for confirm.</p>
+
+  <script>
+    const id = {{printf "%q" .ID}};
+    document.getElementById("settings").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      await fetch("/api/worlds/" + id, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          name: f.name.value,
+          idle_timeout: f.idle_timeout.value,
+          asleep_motd: f.asleep_motd.value,
+          starting_motd: f.starting_motd.value
+        })
+      });
+      location.reload();
+    });
+    document.getElementById("start").addEventListener("click", () => {
+      if (!confirm("Start this world?")) return;
+      power("start");
+    });
+    document.getElementById("stop").addEventListener("click", (e) => {
+      const players = Number(e.target.getAttribute("data-players") || "0");
+      const msg = players > 0
+        ? "Players are online. Stop anyway?"
+        : "Stop this world?";
+      if (!confirm(msg)) return;
+      power("stop");
+    });
+    async function power(action) {
+      await fetch("/api/worlds/" + id + "/power", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({action})
+      });
+      location.reload();
+    }
+  </script>
+</body>
+</html>

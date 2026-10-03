@@ -14,9 +14,9 @@ func (s *Server) handleListWorlds(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	out := make([]world.Record, 0, len(items))
+	out := make([]world.View, 0, len(items))
 	for _, item := range items {
-		out = append(out, s.recordWithState(item))
+		out = append(out, s.view(r.Context(), item))
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -37,7 +37,7 @@ func (s *Server) handleCreateWorld(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
-	writeJSON(w, http.StatusCreated, s.recordWithState(created))
+	writeJSON(w, http.StatusCreated, s.view(r.Context(), created))
 }
 
 func (s *Server) handleGetWorld(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +50,7 @@ func (s *Server) handleGetWorld(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, s.recordWithState(item))
+	writeJSON(w, http.StatusOK, s.view(r.Context(), item))
 }
 
 func (s *Server) handlePatchWorld(w http.ResponseWriter, r *http.Request) {
@@ -81,11 +81,7 @@ func (s *Server) handlePatchWorld(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, s.recordWithState(updated))
-}
-
-func (s *Server) recordWithState(item world.World) world.Record {
-	return item.Record()
+	writeJSON(w, http.StatusOK, s.view(r.Context(), updated))
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
