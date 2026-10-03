@@ -37,6 +37,16 @@ Follow YAGNI, DRY, and KISS.
 - After @Bradfordly merges the pull request, the linked issue is closed. Do not close an issue while its pull request is still open.
 - Do not open implementation issues until the design has been agreed and split into tasks. A design note still waits for @Bradfordly to apply the `documentation` label.
 
+## Versions
+
+Versions follow semantic versioning, `MAJOR.MINOR.PATCH`. GitHub milestones are named `vMAJOR.MINOR`. The current milestone is `v0.0`.
+
+- Classify every change as a patch, a minor update, or a major update.
+- A patch stays on the current milestone. Do not create a milestone for a patch.
+- Create a new milestone for a minor update, such as `v0.1`, and for a major update, such as `v1.0`. While the major version is 0, a minor milestone may include breaking changes.
+- Name that milestone in the issue and in the pull request.
+- The Cursor GitHub App cannot create milestones or assign them on issues. Those calls return HTTP 403. @Bradfordly creates each new major or minor milestone and assigns the issue and the pull request.
+
 ## Board automation
 
 `scripts/github_project.py` creates the project, labels, and branch protection. `.github/workflows/project-board.yml` moves cards after `PROJECT_TOKEN` is stored as a repository secret. That secret is a classic personal access token with the `project` and `public_repo` scopes. A fine-grained token cannot access a project owned by a user account, and GitHub does not show a Projects account permission for one. Until that secret exists, still follow the labels, assignment, and `Closes #` rules above.

@@ -36,6 +36,18 @@ class Rules(unittest.TestCase):
         self.assertIn("Do not add a category label", rules)
         self.assertIn("until that label is present", rules)
 
+    def test_versions_follow_semantic_milestones(self) -> None:
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn("semantic versioning", rules)
+        self.assertIn("`vMAJOR.MINOR`", rules)
+        self.assertIn("The current milestone is `v0.0`.", rules)
+        self.assertIn("Do not create a milestone for a patch.", rules)
+        self.assertIn("cannot create milestones or assign them on issues", rules)
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn("`v0.0`", readme)
+        for path in (ROOT / ".github" / "ISSUE_TEMPLATE").glob("*.md"):
+            self.assertIn("`vMAJOR.MINOR`", path.read_text())
+
     def test_agents_cannot_approve_pull_requests(self) -> None:
         rules = (ROOT / "AGENTS.md").read_text()
         self.assertIn("Do not approve a pull request.", rules)
