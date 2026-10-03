@@ -114,7 +114,7 @@ func (s *Server) handleLogin(conn net.Conn, world *adapter.World, hs mcproto.Han
 	if !ready {
 		return
 	}
-	s.proxyLogin(conn, backend, hs, loginFrame)
+	s.proxyLogin(conn, world.ID, backend, hs, loginFrame)
 }
 
 func waitReady(addr string, timeout time.Duration) bool {
@@ -133,12 +133,14 @@ func waitReady(addr string, timeout time.Duration) bool {
 	return false
 }
 
-func (s *Server) proxyLogin(client net.Conn, backendAddr string, hs mcproto.Handshake, loginFrame []byte) {
+func (s *Server) proxyLogin(client net.Conn, worldID, backendAddr string, hs mcproto.Handshake, loginFrame []byte) {
 	backend, err := net.DialTimeout("tcp", backendAddr, 2*time.Second)
 	if err != nil {
 		return
 	}
 	defer backend.Close()
+	s.noteJoin(worldID)
+	defer s.noteLeave(worldID)
 	_ = client.SetDeadline(time.Time{})
 	if err := mcproto.WriteHandshake(backend, hs); err != nil {
 		return

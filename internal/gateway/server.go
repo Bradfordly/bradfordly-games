@@ -18,9 +18,10 @@ type Server struct {
 	Scaler       Scaler
 	WakeInterval time.Duration
 
-	wakes   *wakeGate
-	adminLn net.Listener
-	gameLn  net.Listener
+	wakes    *wakeGate
+	activity *activity
+	adminLn  net.Listener
+	gameLn   net.Listener
 }
 
 func New(adminAddr, gameAddr string) *Server {
@@ -67,6 +68,9 @@ func (s *Server) handleWorlds(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) Start() (adminAddr, gameAddr string, err error) {
 	if s.wakes == nil {
 		s.wakes = newWakeGate(s.WakeInterval)
+	}
+	if s.activity == nil {
+		s.activity = newActivity()
 	}
 	s.adminLn, err = net.Listen("tcp", s.AdminAddr)
 	if err != nil {
