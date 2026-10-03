@@ -59,6 +59,16 @@ output "panel_certificate_validation" {
   }
 }
 
+output "gateway_minecraft_port" {
+  description = "NLB TCP listener for Minecraft Java."
+  value       = var.gateway_minecraft_port
+}
+
+output "gateway_admin_port" {
+  description = "Gateway admin port used for NLB /healthz checks."
+  value       = var.gateway_admin_port
+}
+
 output "efs_file_system_id" {
   description = "EFS file system for world saves."
   value       = aws_efs_file_system.worlds.id
