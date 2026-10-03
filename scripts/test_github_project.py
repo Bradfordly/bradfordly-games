@@ -36,19 +36,6 @@ class Rules(unittest.TestCase):
         self.assertIn("Do not add a category label", rules)
         self.assertIn("until that label is present", rules)
 
-    def test_commits_are_specific_and_conventional(self) -> None:
-        rules = (ROOT / "AGENTS.md").read_text()
-        self.assertIn("Each commit contains one specific change.", rules)
-        self.assertIn("Conventional Commits", rules)
-        self.assertIn("BREAKING CHANGE:", rules)
-
-    def test_design_follows_yagni_dry_and_kiss(self) -> None:
-        rules = (ROOT / "AGENTS.md").read_text()
-        self.assertIn("Follow YAGNI, DRY, and KISS.", rules)
-        self.assertIn("YAGNI: build only what the current task requires.", rules)
-        self.assertIn("DRY: keep one representation of each rule or piece of logic.", rules)
-        self.assertIn("KISS: use the simplest implementation that meets the requirement.", rules)
-
     def test_agents_cannot_approve_pull_requests(self) -> None:
         rules = (ROOT / "AGENTS.md").read_text()
         self.assertIn("Do not approve a pull request.", rules)
@@ -91,6 +78,19 @@ class Rules(unittest.TestCase):
         self.assertIn("github.event.review.user.login != 'Bradfordly'", workflow)
         self.assertIn("github.event.review.user.type == 'Bot'", workflow)
         self.assertIn("dismissals", workflow)
+
+    def test_commits_are_specific_and_conventional(self) -> None:
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn("Each commit contains one specific change.", rules)
+        self.assertIn("Conventional Commits", rules)
+        self.assertIn("BREAKING CHANGE:", rules)
+
+    def test_design_follows_yagni_dry_and_kiss(self) -> None:
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn("Follow YAGNI, DRY, and KISS.", rules)
+        self.assertIn("YAGNI: build only what the current task requires.", rules)
+        self.assertIn("DRY: keep one representation of each rule or piece of logic.", rules)
+        self.assertIn("KISS: use the simplest implementation that meets the requirement.", rules)
 
 
 class BoardRules(unittest.TestCase):
