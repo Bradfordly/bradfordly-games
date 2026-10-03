@@ -19,6 +19,16 @@ This repository tracks work on a GitHub Project board named `bradfordly-games`. 
 - After @Bradfordly merges the pull request, the linked issue is closed. Do not close an issue while its pull request is still open.
 - Do not open implementation issues until the design has been agreed and split into tasks. A design note still waits for @Bradfordly to apply the `documentation` label.
 
+## Commits
+
+Each commit contains one specific change. The message follows Conventional Commits:
+
+```
+<type>[optional scope]: <description>
+```
+
+Use `feat` for a feature, `fix` for a bug fix, `docs` for documentation, `chore` for a config change or maintenance, `test` for a test-only change, and `refactor` for a behavior-preserving restructure. A breaking change adds `!` after the type or scope and includes a `BREAKING CHANGE:` footer. The description is imperative and names that change. The body explains why when the subject is not enough.
+
 ## Board automation
 
 `scripts/github_project.py` creates the project, labels, and branch protection. `.github/workflows/project-board.yml` moves cards after `PROJECT_TOKEN` is stored as a repository secret. That secret is a classic personal access token with the `project` and `public_repo` scopes. A fine-grained token cannot access a project owned by a user account, and GitHub does not show a Projects account permission for one. Until that secret exists, still follow the labels, assignment, and `Closes #` rules above.
