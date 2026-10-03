@@ -1,4 +1,4 @@
-# bradfordly-games
+# Bradfordly Games
 
 On-Demand Game Server Hosting
 
