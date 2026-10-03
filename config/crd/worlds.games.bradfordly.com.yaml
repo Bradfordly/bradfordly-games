@@ -1,0 +1,76 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: worlds.games.bradfordly.com
+spec:
+  group: games.bradfordly.com
+  names:
+    kind: World
+    listKind: WorldList
+    plural: worlds
+    singular: world
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: ["spec"]
+          properties:
+            spec:
+              type: object
+              required: ["name", "game"]
+              properties:
+                name:
+                  type: string
+                  description: Display name.
+                game:
+                  type: string
+                  enum: ["minecraft-java"]
+                image:
+                  type: string
+                allocation:
+                  type: object
+                  properties:
+                    host:
+                      type: string
+                    port:
+                      type: integer
+                      minimum: 1
+                      maximum: 65535
+                    protocol:
+                      type: string
+                      enum: ["tcp", "udp"]
+                backend:
+                  type: object
+                  properties:
+                    service:
+                      type: string
+                    workload:
+                      type: string
+                idle_timeout:
+                  type: string
+                start_timeout:
+                  type: string
+                stop_timeout:
+                  type: string
+                occupy_mode:
+                  type: string
+                  enum: ["hold", "kick", "retry"]
+                asleep_motd:
+                  type: string
+                starting_motd:
+                  type: string
+                wake_whitelist:
+                  type: array
+                  items:
+                    type: string
+                env:
+                  type: object
+                  additionalProperties:
+                    type: string
+                volume:
+                  type: string
+                  description: PVC name for the EFS bind.
