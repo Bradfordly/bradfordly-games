@@ -15,6 +15,7 @@ This stack creates:
 - ACM certificate for `games.bradfordly.com` and `*.games.bradfordly.com`
 - AWS Load Balancer Controller (Fargate Deployment) and an internet-facing panel Ingress (IP targets, `/healthz`)
 - Internet-facing NLB on TCP 25565 (IP targets, health checks on admin `/healthz`)
+- Panel and gateway ServiceAccounts plus namespaced Roles in `games-worlds`
 
 It does **not** create game workloads, EC2 node groups, DaemonSets, or HostPort bindings. Label the panel and gateway Deployments `app.kubernetes.io/name=panel` and `app.kubernetes.io/name=gateway`.
 
@@ -74,6 +75,17 @@ The Load Balancer Controller creates an internet-facing NLB from the `gateway` S
 | Not used for health | 25565 |
 
 Label the gateway Deployment `app.kubernetes.io/name=gateway`. The NLB does not target game world pods.
+
+## RBAC
+
+ServiceAccounts `panel` and `gateway` are in `games-system`. Namespaced Roles in `games-worlds` bind them:
+
+| Account | Worlds / Services / StatefulSets / PVCs | Replicas |
+| --- | --- | --- |
+| panel | get/list/watch/create/update/patch/delete | same verbs on workloads |
+| gateway | get/list/watch | patch workloads and scale |
+
+Neither Role is cluster-admin. Point the panel and gateway Deployments at these ServiceAccounts.
 
 ## Check without credentials
 
