@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -25,8 +26,7 @@ func serveEchoBackend(t *testing.T) (addr string, closeFn func()) {
 			}
 			go func(conn net.Conn) {
 				defer conn.Close()
-				buf := make([]byte, 512)
-				_, _ = conn.Read(buf)
+				_, _ = io.Copy(io.Discard, conn)
 			}(c)
 		}
 	}()
