@@ -29,6 +29,14 @@ Each commit contains one specific change. The message follows Conventional Commi
 
 Use `feat` for a feature, `fix` for a bug fix, `docs` for documentation, `chore` for a config change or maintenance, `test` for a test-only change, and `refactor` for a behavior-preserving restructure. A breaking change adds `!` after the type or scope and includes a `BREAKING CHANGE:` footer. The description is imperative and names that change. The body explains why when the subject is not enough.
 
+## Design
+
+Follow YAGNI, DRY, and KISS.
+
+- YAGNI: build only what the current task requires.
+- DRY: keep one representation of each rule or piece of logic.
+- KISS: use the simplest implementation that meets the requirement.
+
 ## Board automation
 
 `scripts/github_project.py` creates the project, labels, and branch protection. `.github/workflows/project-board.yml` moves cards after `PROJECT_TOKEN` is stored as a repository secret. That secret is a classic personal access token with the `project` and `public_repo` scopes. A fine-grained token cannot access a project owned by a user account, and GitHub does not show a Projects account permission for one. Until that secret exists, still follow the labels, assignment, and `Closes #` rules above.
