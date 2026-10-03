@@ -48,9 +48,13 @@ type Allocation struct {
 }
 
 type World struct {
-	ID         string
-	Game       string
-	Allocation Allocation
+	ID           string
+	Game         string
+	Allocation   Allocation
+	State        WorldState
+	AsleepMOTD   string
+	StartingMOTD string
+	Replicas     int
 }
 
 type Event struct {
@@ -65,7 +69,7 @@ type Adapter interface {
 	Match(worlds []*World, alloc Allocation, first []byte) *World
 	Classify(first []byte) Intent
 	ShouldWake(Event) bool
-	ServeStatus(conn net.Conn, world *World, state WorldState) error
+	ServeStatus(rw net.Conn, world *World, state WorldState, protocol int) error
 	Occupy(world *World, state WorldState) OccupyAction
 	Activity(world *World) (players int, unknown bool)
 	GracefulStop(world *World) error

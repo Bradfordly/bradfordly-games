@@ -1,6 +1,11 @@
 package adapter
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+
+	"github.com/bradfordly/bradfordly-games/internal/mcproto"
+)
 
 func TestRegistryGames(t *testing.T) {
 	r := NewRegistry()
@@ -28,6 +33,30 @@ func TestMinecraftShouldWake(t *testing.T) {
 	}
 	if !a.ShouldWake(Event{Intent: IntentLogin, World: world}) {
 		t.Fatal("login must be allowed to wake")
+	}
+}
+
+func TestMinecraftClassifyHandshake(t *testing.T) {
+	a := MinecraftJava()
+	var status, login bytes.Buffer
+	if err := mcproto.WriteHandshake(&status, mcproto.Handshake{
+		ProtocolVersion: 767, ServerAddress: "localhost", ServerPort: 25565, NextState: mcproto.NextStateStatus,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := mcproto.WriteHandshake(&login, mcproto.Handshake{
+		ProtocolVersion: 767, ServerAddress: "localhost", ServerPort: 25565, NextState: mcproto.NextStateLogin,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if a.Classify(status.Bytes()) != IntentStatus {
+		t.Fatal("intent 1 is status")
+	}
+	if a.Classify(login.Bytes()) != IntentLogin {
+		t.Fatal("intent 2 is login")
+	}
+	if a.Classify([]byte{0x00}) != IntentOther {
+		t.Fatal("garbage is other")
 	}
 }
 
@@ -66,7 +95,7 @@ func TestUDPNotImplemented(t *testing.T) {
 		if a.ShouldWake(Event{Intent: IntentLogin}) {
 			t.Fatalf("%s must not wake", game)
 		}
-		if err := a.ServeStatus(nil, nil, StateAsleep); err != ErrNotImplemented {
+		if err := a.ServeStatus(nil, nil, StateAsleep, 0); err != ErrNotImplemented {
 			t.Fatalf("%s ServeStatus = %v, want ErrNotImplemented", game, err)
 		}
 		if err := a.GracefulStop(nil); err != ErrNotImplemented {

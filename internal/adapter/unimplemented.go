@@ -19,7 +19,7 @@ func (unimplemented) Classify([]byte) Intent { return IntentOther }
 
 func (unimplemented) ShouldWake(Event) bool { return false }
 
-func (unimplemented) ServeStatus(net.Conn, *World, WorldState) error {
+func (unimplemented) ServeStatus(net.Conn, *World, WorldState, int) error {
 	return ErrNotImplemented
 }
 
