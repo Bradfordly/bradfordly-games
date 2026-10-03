@@ -10,6 +10,8 @@ This stack creates:
 - Fargate profiles for `kube-system`, `games-system`, and `games-worlds`
 - The `games-system` and `games-worlds` namespaces
 - `vpc-cni` and `coredns` (CoreDNS on Fargate)
+- One encrypted EFS file system with mount targets in the private subnets
+- Optional per-world access points when `world_ids` is set
 
 It does **not** create game workloads, EC2 node groups, DaemonSets, HostPort bindings, the load balancer controller, or an ALB/NLB.
 
@@ -29,6 +31,20 @@ aws eks update-kubeconfig --name bradfordly-games --region us-east-1
 ```
 
 Lock `cluster_endpoint_public_access_cidrs` after the first apply.
+
+## World saves (EFS)
+
+One file system. One access point per world:
+
+| Field | Value |
+| --- | --- |
+| Path | `/worlds/<world_id>` |
+| POSIX | uid/gid `1000` |
+| PV handle | `<file-system-id>::<access-point-id>` |
+
+Creating access points by hand is fine for the first worlds. To have Terraform create them, set `world_ids` in `terraform.tfvars`. Then copy `k8s/examples/world-save.yaml`, replace the placeholders, and `kubectl apply` it in `games-worlds`. Mount only the save directory, not game binaries.
+
+Fargate static PVs use the in-platform EFS CSI node. The CSI controller add-on is not required until something needs dynamic provisioning.
 
 ## Check without credentials
 
