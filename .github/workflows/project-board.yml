@@ -2,7 +2,7 @@ name: Project board
 
 on:
   issues:
-    types: [opened, assigned, unassigned, reopened, closed]
+    types: [opened, labeled, unlabeled, assigned, unassigned, reopened, closed]
   pull_request:
     types: [opened, edited, reopened, ready_for_review, closed]
 

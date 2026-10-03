@@ -4,20 +4,20 @@ This repository tracks work on a GitHub Project board named `bradfordly-games`. 
 
 ## Pull requests
 
-- Open pull requests against `main`.
+- Open pull requests against `main`. GitHub attributes them to @Bradfordly. That account cannot approve its own pull request, and the Cursor GitHub App cannot be granted permission to open pull requests in its place.
 - The pull request body must include a closing keyword for the issue it finishes, for example `Closes #12`.
 - Do not approve a pull request. Do not submit an approving review, do not dismiss a request for changes in order to clear the way, and do not merge.
 - Do not enable auto-merge.
-- Approval and merge belong only to @Bradfordly. Branch protection requires a code-owner review from that account. Bot approvals are dismissed.
+- @Bradfordly's merge is the approval. Branch protection requires a pull request and does not require a separate approving review. Do not turn required approving reviews or required code-owner reviews back on. Bot approvals are dismissed.
 
 ## Issues
 
-- Open an issue before starting work. Use exactly one category label: `documentation`, `config change`, `bug fix`, or `feature`.
-- New issues stay in **Backlog** while they have no assignee.
-- Assign yourself when you start the work. That moves the issue to **In-Progress**. Do not start implementation while the issue is unassigned.
+- Open an issue before starting work. Do not add a category label, and do not assign anyone. New issues stay in **Backlog**.
+- @Bradfordly applies exactly one category label: `documentation`, `config change`, `bug fix`, or `feature`. That label is the gate. It chooses which kind of agent may take the issue.
+- Do not assign an agent, and do not start implementation, until that label is present. After @Bradfordly adds the label, the matching agent may be assigned. Assignment moves the issue to **In-Progress**. An assignee without a category label leaves the issue in **Backlog**.
 - When the pull request to `main` is open, the issue moves to **Review**.
 - After @Bradfordly merges the pull request, the linked issue is closed. Do not close an issue while its pull request is still open.
-- Do not open implementation issues until the design has been agreed and split into tasks. A `documentation` issue is appropriate for a design note that needs review.
+- Do not open implementation issues until the design has been agreed and split into tasks. A design note still waits for @Bradfordly to apply the `documentation` label.
 
 ## Board automation
 

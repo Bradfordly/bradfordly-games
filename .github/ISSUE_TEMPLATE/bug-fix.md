@@ -2,7 +2,6 @@
 name: Bug fix
 description: Repair a defect.
 title: "[bug] "
-labels: ["bug fix"]
 ---
 
 ## Outcome
@@ -11,4 +10,4 @@ labels: ["bug fix"]
 
 ## Notes
 
-Leave this issue unassigned. It stays in Backlog until an agent is assigned.
+Do not add a category label. @Bradfordly applies it. The issue stays in Backlog until that label exists and an agent is assigned.
