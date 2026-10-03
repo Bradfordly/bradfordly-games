@@ -141,6 +141,50 @@ A totals use the 1-AZ NAT baseline ($182). Add **$36** to any A column for alter
 - **Break-even, one Minecraft world:** D ($72 + hours) stays below F/G ($131) even if Minecraft is 24/7 ($108). A ($182 + hours) never beats a t3.xlarge for a single packed host; you are paying for Kubernetes and isolation, not for Minecraft hours.
 - **Break-even, all three worlds 24/7:** D ($265) and a dedicated m6i.2xlarge ($294) are close. A ($375) loses. If the three worlds overlap only on weekends (40 h), D ($82) beats any always-on VM that can host all three.
 
+### Trade-offs of alternative D (ECS Fargate, public subnets)
+
+D is the cheapest measured option that keeps the product shape: always-on panel and gateway, per-world Fargate isolation, wake-on-connect, idle scale-to-zero. At **40 hours of world on-time per month** the totals are about **$74** (Minecraft only), **$76** (Valheim), **$77** (Palworld), or **$82** (all three at 40 h each). Those add only a few dollars on top of the **$72** asleep platform. Alternative A is ~$184 / $192 for the same play.
+
+40 h here means hours the *game task* is billed, not hours the platform exists. The panel, gateway, ALB, and NLB still run all month.
+
+D is not the cheapest thing we measured in every slice. A packed public `t3.large` running a custom gateway (G, smaller than the $131 `t3.xlarge` row) is about **$68** always on. That beats D for **Minecraft-only**. It loses as soon as you want Valheim or Palworld isolation, or three worlds that must not share one box.
+
+#### What you gain versus A
+
+- **−$110/month** asleep: no EKS control plane (−$73) and no NAT (−$37 including its IPv4 and a little data).
+- Same Fargate unit rates and the same idle math. `desiredCount` 0 on an ECS service is valid. The gateway still scales 0/1.
+- ECS has had UDP NLB to Fargate longer than EKS. Graviton Fargate exists on ECS if an image is ARM.
+- No Kubernetes upgrades, no Load Balancer Controller, no Fargate profile. The AWS surface is a cluster, task definitions, and services.
+
+#### What you give up versus A
+
+- **The control plane is rewritten.** Specs that patch StatefulSet replicas and store worlds as Kubernetes objects become ECS `UpdateService` / `RunTask` plus another store (SSM, DynamoDB, or files on EFS). [ADR-0002](../ADRs/ADR-0002-reject-wings-use-eks-fargate.md) chose EKS so the panel could be a Kubernetes client and so `mc-router` could scale StatefulSets. That path does not transfer.
+- **`mc-router` in-cluster mode is gone.** Its Docker mode needs a Docker socket, which Fargate does not have. The Minecraft adapter must be a standalone proxy (custom, or mc-router with a static map the control plane rewrites) talking to Cloud Map or the task's private IP after each wake.
+- **No ClusterIP.** Every wake gives the world a new ENI and IP. The gateway has to rediscover the backend. Player-facing hostnames stay on the NLB in front of the *gateway*, not the world. Do not hand players the task public IP; it changes and skips idle detection.
+- **Public subnets are how D avoids NAT.** A Fargate task in a public subnet with `assignPublicIp` disabled cannot pull images or reach ECR/Docker Hub. So D implies `assignPublicIp=ENABLED` on tasks that need egress, *or* a set of VPC endpoints (which starts to look like C). Panel and gateway each then have an extra public IPv4 (~$3.65/month each). Game tasks add $0.005/hour only while running (~$0.20 at 40 h). Those IPs were not in the $72 row; add ~$7 if both always-on tasks get public IPs (**~$79** asleep). Inbound must be security-group locked to the ALB/NLB (and to the gateway SG for world ports). RCON and Palworld REST stay closed. A mistaken `0.0.0.0/0` on a world task publishes that game on a public IP. A and C fail closed for internet-to-pod.
+- **You still pay for the ALB and NLB (~$44).** Dropping them to save money also drops HTTPS on `games.bradfordly.com` and a stable player allocation. That is no longer D; it is a different product.
+
+#### What stays the same as A
+
+- Fargate cold start (30–90 s) plus world boot (1–5+ min). UDP clients still retry. Minecraft can still kick/hold.
+- EFS for saves. One access point per world. Same graceful SIGTERM story.
+- Invite-only panel. Game passwords stay on the world.
+- One replica per world. No Agones.
+
+#### Compared with C and G
+
+| | D | C (ECS + NAT, private) | G (packed EC2 + gateway) |
+| --- | --- | --- | --- |
+| 40 h, three worlds | ~$82 (~$79+$11 if you count task IPv4s) | ~$119 | ~$131 on `t3.xlarge`; ~$68 on `t3.large` if Minecraft-only |
+| World isolation | Yes | Yes | No |
+| Internet to world ENI | Possible if SG is wrong | No | Yes, one static host |
+| Orchestrator change vs current spec | ECS API | ECS API | Docker on one VM |
+| NAT / cluster fee | Neither | NAT only | Neither |
+
+C is the safer ECS option: same rewrite as D, keep private tasks, pay $33 for NAT. Pick C if the public-IP blast radius is unacceptable and $119 at 40 h is fine. Pick G if one machine and a static IP are enough and you do not need per-world Fargate. Pick D if $70–85/month for isolated, sleeping worlds is the goal and you will treat security groups as part of the product.
+
+Choosing D is a change to ADR-0002, not a tweak to A. Do not implement D while that ADR still says EKS Fargate.
+
 ### Choices that move the bill
 
 | Choice | Monthly effect vs A |
