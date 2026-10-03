@@ -5,12 +5,16 @@ from scripts.github_project import (
     STATUS_BACKLOG,
     STATUS_IN_PROGRESS,
     STATUS_REVIEW,
+    GithubError,
     desired_status,
     issue_templates_use_known_labels,
     label_plan,
     linked_issue_numbers,
     load_labels,
+    missing_token_message,
+    project_token_instructions,
     protection_body,
+    resolve_token,
     status_option_inputs,
     sync_event,
     workflows_to_disable,
@@ -39,6 +43,31 @@ class Rules(unittest.TestCase):
         owners = (ROOT / ".github" / "CODEOWNERS").read_text()
         self.assertIn("* @Bradfordly", owners)
         self.assertNotIn("[bot]", owners)
+
+    def test_project_token_uses_a_classic_scope_instead_of_an_account_permission(self) -> None:
+        instructions = project_token_instructions("Bradfordly/bradfordly-games")
+        missing = missing_token_message()
+        for text in (instructions, missing):
+            self.assertNotIn("Account permission", text)
+            self.assertNotIn("fine-grained personal access token as the PROJECT_TOKEN", text)
+            self.assertIn("classic", text.casefold())
+        self.assertIn("Tokens (classic)", instructions)
+        self.assertIn("project scope", instructions)
+        self.assertIn("public_repo", instructions)
+        self.assertIn("does not offer a Projects account permission", instructions)
+        self.assertIn("gh secret set PROJECT_TOKEN --repo Bradfordly/bradfordly-games", instructions)
+
+    def test_token_resolution_prefers_the_environment_then_gh(self) -> None:
+        self.assertEqual(resolve_token({"GH_TOKEN": "from-env"}, lambda: "from-gh"), "from-env")
+        self.assertEqual(resolve_token({}, lambda: "from-gh\n"), "from-gh")
+
+        def unavailable() -> str:
+            raise OSError("gh is not installed")
+
+        with self.assertRaises(GithubError) as raised:
+            resolve_token({}, unavailable)
+        self.assertIn("project", str(raised.exception))
+        self.assertNotIn("Account permission", str(raised.exception))
 
     def test_bot_approval_workflow_dismisses_bots_only(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "dismiss-bot-approval.yml").read_text()
