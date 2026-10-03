@@ -1,0 +1,22 @@
+[
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "Documentation."
+  },
+  {
+    "name": "config change",
+    "color": "fbca04",
+    "description": "Configuration, tooling, or environment change."
+  },
+  {
+    "name": "bug fix",
+    "color": "d73a4a",
+    "description": "Defect repair."
+  },
+  {
+    "name": "feature",
+    "color": "0e8a16",
+    "description": "New behavior."
+  }
+]
