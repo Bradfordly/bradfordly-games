@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -218,14 +219,59 @@ class GithubSession:
         return self.request(method, f"https://api.github.com{path}", body)
 
 
-def token_from_environment() -> str:
-    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+def project_token_instructions(repo: str) -> str:
+    """How to create the token that moves cards on a user-owned project.
+
+    Fine-grained personal access tokens have no Projects account permission.
+    That permission exists only for an organization, and a fine-grained token
+    cannot access a project owned by a user account.
+    """
+    return "\n".join(
+        [
+            "Store a classic personal access token as the PROJECT_TOKEN secret.",
+            "A fine-grained token cannot access this project: GitHub does not offer a Projects account permission for a user, and that permission exists only for an organization.",
+            "Open Settings, Developer settings, Personal access tokens, Tokens (classic), then Generate new token (classic).",
+            "Select the project scope, shown as Full control of projects.",
+            "Select the public_repo scope, shown as Access public repositories. The repository is public, so the broader repo scope is unnecessary.",
+            f"Then run: gh secret set PROJECT_TOKEN --repo {repo}",
+        ]
+    )
+
+
+def missing_token_message() -> str:
+    return (
+        "No GitHub token is available. Log in with `gh auth login` as Bradfordly, "
+        "or set GH_TOKEN to a classic personal access token with the project and "
+        "public_repo scopes. A fine-grained token has no Projects account permission "
+        "and cannot update a project owned by a user."
+    )
+
+
+def resolve_token(env: dict[str, str], read_gh_token) -> str:
+    token = env.get("GH_TOKEN") or env.get("GITHUB_TOKEN")
     if token:
         return token
-    raise GithubError(
-        "GH_TOKEN is not set. Authenticate as Bradfordly, or export a "
-        "fine-grained token with Issues, Pull requests, and Projects access."
+    try:
+        output = read_gh_token()
+    except (OSError, subprocess.CalledProcessError):
+        output = ""
+    if output and output.strip():
+        return output.strip()
+    raise GithubError(missing_token_message())
+
+
+def read_gh_auth_token() -> str:
+    completed = subprocess.run(
+        ["gh", "auth", "token"],
+        check=True,
+        capture_output=True,
+        text=True,
     )
+    return completed.stdout
+
+
+def token_from_environment() -> str:
+    return resolve_token(os.environ, read_gh_auth_token)
 
 
 def sync_labels(github: GithubSession, repo: str) -> None:
@@ -421,11 +467,7 @@ def bootstrap(owner: str, repo: str, title: str, dry_run: bool) -> None:
     upsert_variable(github, repo, "PROJECT_NUMBER", str(project["number"]))
     protect_main(github, repo)
     print()
-    print("Store a fine-grained personal access token as the PROJECT_TOKEN secret.")
-    print("Account permission: Projects (read and write).")
-    print(f"Repository access: {repo}.")
-    print("Repository permissions: Issues and Pull requests (read and write), Metadata (read).")
-    print(f"Then run: gh secret set PROJECT_TOKEN --repo {repo}")
+    print(project_token_instructions(repo))
     url = project.get("url") or (
         f"https://github.com/users/{owner}/projects/{project['number']}"
     )
