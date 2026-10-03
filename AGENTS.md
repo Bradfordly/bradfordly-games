@@ -4,11 +4,11 @@ This repository tracks work on a GitHub Project board named `bradfordly-games`. 
 
 ## Pull requests
 
-- Open pull requests against `main`. The Cursor app must open the pull request. @Bradfordly is the required reviewer and cannot approve a pull request that GitHub attributes to that account.
+- Open pull requests against `main`. GitHub attributes them to @Bradfordly. That account cannot approve its own pull request, and the Cursor GitHub App cannot be granted permission to open pull requests in its place.
 - The pull request body must include a closing keyword for the issue it finishes, for example `Closes #12`.
 - Do not approve a pull request. Do not submit an approving review, do not dismiss a request for changes in order to clear the way, and do not merge.
 - Do not enable auto-merge.
-- Approval and merge belong only to @Bradfordly. Branch protection requires a code-owner review from that account. Bot approvals are dismissed.
+- @Bradfordly's merge is the approval. Branch protection requires a pull request and does not require a separate approving review. Do not turn required approving reviews or required code-owner reviews back on. Bot approvals are dismissed.
 
 ## Issues
 

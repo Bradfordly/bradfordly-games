@@ -135,13 +135,20 @@ def workflows_to_disable(workflows: list[dict[str, Any]]) -> list[dict[str, Any]
 
 
 def protection_body() -> dict[str, Any]:
+    """Require a pull request, and do not require a separate approving review.
+
+    GitHub attributes these pull requests to @Bradfordly and will not accept
+    an approving review from that author. The Cursor GitHub App cannot be
+    granted permission to open them instead. @Bradfordly's merge is the
+    approval. Agents still must not approve or merge.
+    """
     return {
         "required_status_checks": None,
         "enforce_admins": True,
         "required_pull_request_reviews": {
             "dismiss_stale_reviews": True,
-            "require_code_owner_reviews": True,
-            "required_approving_review_count": 1,
+            "require_code_owner_reviews": False,
+            "required_approving_review_count": 0,
         },
         "restrictions": None,
         "allow_force_pushes": False,
@@ -392,7 +399,7 @@ def protect_main(github: GithubSession, repo: str) -> None:
         body.pop("restrictions", None)
         github.rest("PUT", path, body)
     github.rest("PATCH", f"/repos/{repo}", {"allow_auto_merge": False})
-    print("main requires a code-owner review from @Bradfordly and auto-merge is off")
+    print("main requires a pull request; @Bradfordly's merge is the approval and auto-merge is off")
 
 
 def bootstrap(owner: str, repo: str, title: str, dry_run: bool) -> None:
@@ -402,7 +409,7 @@ def bootstrap(owner: str, repo: str, title: str, dry_run: bool) -> None:
     print(f"project title: {title}")
     print("columns:", ", ".join(STATUS_NAMES))
     print("labels:", ", ".join(label["name"] for label in labels))
-    print("pull request approval: @Bradfordly only")
+    print("pull request gate: @Bradfordly merges; no separate approving review")
     if dry_run:
         print("dry run: no GitHub changes were made")
         return

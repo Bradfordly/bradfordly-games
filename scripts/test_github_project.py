@@ -36,7 +36,8 @@ class Rules(unittest.TestCase):
         rules = (ROOT / "AGENTS.md").read_text()
         self.assertIn("Do not approve a pull request.", rules)
         self.assertIn("Do not enable auto-merge.", rules)
-        self.assertIn("@Bradfordly", rules)
+        self.assertIn("@Bradfordly's merge is the approval.", rules)
+        self.assertNotIn("Cursor app must open", rules)
 
     def test_codeowners_is_only_the_repository_owner(self) -> None:
         owners = (ROOT / ".github" / "CODEOWNERS").read_text()
@@ -116,11 +117,11 @@ class BoardRules(unittest.TestCase):
         self.assertIn("feature", plan["create"])
         self.assertIn("documentation", plan["update"])
 
-    def test_branch_protection_requires_the_owner_review(self) -> None:
+    def test_branch_protection_requires_a_pull_request_from_the_owner(self) -> None:
         body = protection_body()
         reviews = body["required_pull_request_reviews"]
-        self.assertTrue(reviews["require_code_owner_reviews"])
-        self.assertEqual(reviews["required_approving_review_count"], 1)
+        self.assertFalse(reviews["require_code_owner_reviews"])
+        self.assertEqual(reviews["required_approving_review_count"], 0)
         self.assertTrue(reviews["dismiss_stale_reviews"])
         self.assertTrue(body["enforce_admins"])
         self.assertFalse(body["allow_force_pushes"])

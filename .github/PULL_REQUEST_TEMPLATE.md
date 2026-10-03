@@ -10,4 +10,4 @@ Closes #
 
 ## How to verify
 
-Agents do not approve or merge pull requests. @Bradfordly reviews and merges.
+Agents do not approve or merge pull requests. @Bradfordly's merge is the approval.
