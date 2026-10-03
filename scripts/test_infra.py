@@ -52,7 +52,7 @@ class EksFargateCluster(unittest.TestCase):
     def test_no_game_workloads(self) -> None:
         text = infra_text()
         self.assertNotIn("kind: StatefulSet", text)
-        self.assertNotIn("kind: Deployment", text)
+        self.assertNotIn("kubernetes_stateful_set", text)
         self.assertNotIn("aws_eks_addon.kube_proxy", text)
 
     def test_terraform_fmt(self) -> None:
@@ -108,6 +108,36 @@ class EfsWorldSaves(unittest.TestCase):
         self.assertNotIn("kind: Deployment", example)
 
 
+class PanelAlb(unittest.TestCase):
+    def test_acm_covers_panel_hostname(self) -> None:
+        acm = (INFRA / "acm.tf").read_text()
+        variables = (INFRA / "variables.tf").read_text()
+        self.assertIn("aws_acm_certificate", acm)
+        self.assertIn("var.panel_hostname", acm)
+        self.assertIn("*.${var.panel_hostname}", acm)
+        self.assertIn("games.bradfordly.com", variables)
+
+    def test_ingress_is_internet_facing_ip_with_healthz(self) -> None:
+        alb = (INFRA / "panel_alb.tf").read_text()
+        self.assertIn("internet-facing", alb)
+        self.assertIn("alb.ingress.kubernetes.io/target-type", alb)
+        self.assertIn('"ip"', alb)
+        self.assertIn("/healthz", alb)
+        self.assertIn("aws_acm_certificate.panel.arn", alb)
+        self.assertIn("games-system", alb)
+        self.assertNotIn("HostPort", alb)
+        self.assertNotIn("hostPort", alb)
+
+    def test_load_balancer_controller_is_a_fargate_deployment(self) -> None:
+        lbc = (INFRA / "lbc.tf").read_text()
+        self.assertIn("kubernetes_deployment", lbc)
+        self.assertIn("aws-load-balancer-controller", lbc)
+        self.assertIn("kube-system", lbc)
+        self.assertNotIn("DaemonSet", lbc)
+        self.assertNotIn("hostNetwork", lbc)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
