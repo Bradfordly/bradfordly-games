@@ -10,6 +10,24 @@ This repository tracks work on a GitHub Project board named `bradfordly-games`. 
 - Do not enable auto-merge.
 - @Bradfordly's merge is the approval. Branch protection requires a pull request and does not require a separate approving review. Do not turn required approving reviews or required code-owner reviews back on. Bot approvals are dismissed.
 
+## Commits
+
+Each commit contains one specific change. The message follows Conventional Commits:
+
+```
+<type>[optional scope]: <description>
+```
+
+Use `feat` for a feature, `fix` for a bug fix, `docs` for documentation, `chore` for a config change or maintenance, `test` for a test-only change, and `refactor` for a behavior-preserving restructure. A breaking change adds `!` after the type or scope and includes a `BREAKING CHANGE:` footer. The description is imperative and names that change. The body explains why when the subject is not enough.
+
+## Design
+
+Follow YAGNI, DRY, and KISS.
+
+- YAGNI: build only what the current task requires.
+- DRY: keep one representation of each rule or piece of logic.
+- KISS: use the simplest implementation that meets the requirement.
+
 ## Issues
 
 - Open an issue before starting work. Do not add a category label, and do not assign anyone. New issues stay in **Backlog**.
