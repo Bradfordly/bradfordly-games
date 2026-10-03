@@ -12,8 +12,10 @@ This stack creates:
 - `vpc-cni` and `coredns` (CoreDNS on Fargate)
 - One encrypted EFS file system with mount targets in the private subnets
 - Optional per-world access points when `world_ids` is set
+- ACM certificate for `games.bradfordly.com` and `*.games.bradfordly.com`
+- AWS Load Balancer Controller (Fargate Deployment) and an internet-facing panel Ingress (IP targets, `/healthz`)
 
-It does **not** create game workloads, EC2 node groups, DaemonSets, HostPort bindings, the load balancer controller, or an ALB/NLB.
+It does **not** create game workloads, EC2 node groups, DaemonSets, or HostPort bindings. The panel Deployment is not created here; label it `app.kubernetes.io/name=panel`.
 
 Panel and gateway share `games-system`. Worlds use `games-worlds` so they cannot read panel secrets.
 
@@ -45,6 +47,19 @@ One file system. One access point per world:
 Creating access points by hand is fine for the first worlds. To have Terraform create them, set `world_ids` in `terraform.tfvars`. Then copy `k8s/examples/world-save.yaml`, replace the placeholders, and `kubectl apply` it in `games-worlds`. Mount only the save directory, not game binaries.
 
 Fargate static PVs use the in-platform EFS CSI node. The CSI controller add-on is not required until something needs dynamic provisioning.
+
+## Panel ALB
+
+The Load Balancer Controller creates an internet-facing ALB from the `panel` Ingress in `games-system`:
+
+| Field | Value |
+| --- | --- |
+| Host | `games.bradfordly.com` |
+| Listen | HTTPS 443 with the ACM certificate |
+| Targets | IP (Fargate) |
+| Health check | HTTP `/healthz` on port 8080 |
+
+Set `route53_zone_id` to write ACM validation records. Otherwise apply the `panel_certificate_validation` output in DNS.
 
 ## Check without credentials
 
