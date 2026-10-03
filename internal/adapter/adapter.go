@@ -3,6 +3,7 @@ package adapter
 import (
 	"errors"
 	"net"
+	"time"
 )
 
 // ErrNotImplemented is returned when a follow-on UDP adapter is selected.
@@ -55,6 +56,10 @@ type World struct {
 	AsleepMOTD   string
 	StartingMOTD string
 	Replicas     int
+	Backend      string
+	StartTimeout time.Duration
+	IdleTimeout  time.Duration
+	StopTimeout  time.Duration
 }
 
 type Event struct {

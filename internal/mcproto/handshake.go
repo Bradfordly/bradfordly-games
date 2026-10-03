@@ -106,6 +106,36 @@ func WriteStatus(w io.Writer, motd string, protocol int) error {
 	return writeFrame(w, payload)
 }
 
+func ReadFrameBytes(r io.Reader) ([]byte, error) {
+	length, err := ReadVarInt(r)
+	if err != nil {
+		return nil, err
+	}
+	if length < 1 || length > maxFrameLength {
+		return nil, errors.New("invalid frame length")
+	}
+	payload := make([]byte, length)
+	if _, err := io.ReadFull(r, payload); err != nil {
+		return nil, err
+	}
+	return append(appendVarInt(nil, length), payload...), nil
+}
+
+func LoginName(frame []byte) (string, error) {
+	buf := &buffer{b: frame}
+	if _, err := ReadVarInt(buf); err != nil {
+		return "", err
+	}
+	packetID, err := ReadVarInt(buf)
+	if err != nil {
+		return "", err
+	}
+	if packetID != 0 {
+		return "", errors.New("not a login start packet")
+	}
+	return readString(buf)
+}
+
 func ReadStatusJSON(r io.Reader) (map[string]any, error) {
 	payload, err := readFrame(r)
 	if err != nil {
