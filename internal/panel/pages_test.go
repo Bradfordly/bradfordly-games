@@ -59,7 +59,7 @@ func TestWorldListAndDetailPages(t *testing.T) {
 	if !strings.Contains(dbody, "Players are online. Stop anyway?") {
 		t.Fatalf("detail must confirm stop while players are online: %s", dbody)
 	}
-	if !strings.Contains(dbody, "/api/worlds/"+"broken"+"/power") {
+	if !strings.Contains(dbody, `data-world="broken"`) || !strings.Contains(dbody, "/power") {
 		t.Fatalf("detail missing power action: %s", dbody)
 	}
 }

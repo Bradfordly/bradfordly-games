@@ -31,11 +31,11 @@
 
   <h2>Power</h2>
   <button type="button" id="start">Start</button>
-  <button type="button" id="stop" data-players="{{if .PlayerCount}}{{.PlayerCount}}{{else}}0{{end}}">Stop</button>
+  <button type="button" id="stop" data-world="{{.ID}}" data-players="{{if .PlayerCount}}{{.PlayerCount}}{{else}}0{{end}}">Stop</button>
   <p>Stop while players are online asks for confirm.</p>
 
   <script>
-    const id = {{printf "%q" .ID}};
+    const id = document.getElementById("stop").getAttribute("data-world");
     document.getElementById("settings").addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = e.target;
