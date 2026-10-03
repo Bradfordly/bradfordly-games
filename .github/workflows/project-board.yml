@@ -1,0 +1,30 @@
+name: Project board
+
+on:
+  issues:
+    types: [opened, assigned, unassigned, reopened, closed]
+  pull_request:
+    types: [opened, edited, reopened, ready_for_review, closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-board-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: vars.PROJECT_NUMBER != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move the linked issue on the board
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PROJECT_OWNER: ${{ vars.PROJECT_OWNER }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+        run: python3 scripts/github_project.py sync-event

@@ -1,0 +1,28 @@
+name: Dismiss bot approvals
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  dismiss:
+    if: >-
+      github.event.review.state == 'approved' &&
+      github.event.review.user.login != 'Bradfordly' &&
+      (github.event.review.user.type == 'Bot' ||
+       endsWith(github.event.review.user.login, '[bot]'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dismiss the bot approval
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEW_ID: ${{ github.event.review.id }}
+        run: |
+          gh api --method PUT \
+            "repos/${REPOSITORY}/pulls/${PULL_NUMBER}/reviews/${REVIEW_ID}/dismissals" \
+            -f message='Only @Bradfordly can approve pull requests. Agent and bot approvals are dismissed.'
