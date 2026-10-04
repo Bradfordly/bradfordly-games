@@ -23,3 +23,6 @@ target
 # Python
 __pycache__/
 *.py[cod]
+
+# Go
+bin/
