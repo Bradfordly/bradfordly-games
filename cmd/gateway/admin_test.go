@@ -18,6 +18,20 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+func TestDrainAndReload(t *testing.T) {
+	rec := httptest.NewRecorder()
+	adminMux().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/worlds/abc/drain", nil))
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("drain status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+
+	rec = httptest.NewRecorder()
+	adminMux().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/reload", nil))
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("reload status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+}
+
 func TestWorldsEmpty(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/worlds", nil)
