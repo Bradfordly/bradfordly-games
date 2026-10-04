@@ -14,8 +14,9 @@ This stack creates:
 - Optional per-world access points when `world_ids` is set
 - ACM certificate for `games.bradfordly.com` and `*.games.bradfordly.com`
 - AWS Load Balancer Controller (Fargate Deployment) and an internet-facing panel Ingress (IP targets, `/healthz`)
+- Internet-facing NLB on TCP 25565 (IP targets, health checks on admin `/healthz`)
 
-It does **not** create game workloads, EC2 node groups, DaemonSets, or HostPort bindings. The panel Deployment is not created here; label it `app.kubernetes.io/name=panel`.
+It does **not** create game workloads, EC2 node groups, DaemonSets, or HostPort bindings. Label the panel and gateway Deployments `app.kubernetes.io/name=panel` and `app.kubernetes.io/name=gateway`.
 
 Panel and gateway share `games-system`. Worlds use `games-worlds` so they cannot read panel secrets.
 
@@ -60,6 +61,19 @@ The Load Balancer Controller creates an internet-facing ALB from the `panel` Ing
 | Health check | HTTP `/healthz` on port 8080 |
 
 Set `route53_zone_id` to write ACM validation records. Otherwise apply the `panel_certificate_validation` output in DNS.
+
+## Gateway NLB
+
+The Load Balancer Controller creates an internet-facing NLB from the `gateway` Service in `games-system`:
+
+| Field | Value |
+| --- | --- |
+| Player listener | TCP 25565 |
+| Targets | IP (Fargate) |
+| Health check | HTTP `/healthz` on admin port 8080 |
+| Not used for health | 25565 |
+
+Label the gateway Deployment `app.kubernetes.io/name=gateway`. The NLB does not target game world pods.
 
 ## Check without credentials
 

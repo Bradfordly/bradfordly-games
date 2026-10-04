@@ -137,7 +137,31 @@ class PanelAlb(unittest.TestCase):
         self.assertNotIn("hostNetwork", lbc)
 
 
+class GatewayNlb(unittest.TestCase):
+    def test_nlb_is_internet_facing_ip_on_25565(self) -> None:
+        nlb = (INFRA / "gateway_nlb.tf").read_text()
+        self.assertIn("internet-facing", nlb)
+        self.assertIn("aws-load-balancer-nlb-target-type", nlb)
+        self.assertIn("ip", nlb)
+        self.assertIn("var.gateway_minecraft_port", nlb)
+        self.assertIn("LoadBalancer", nlb)
+        self.assertIn("games-system", nlb)
+
+    def test_health_checks_use_admin_healthz_not_minecraft(self) -> None:
+        nlb = (INFRA / "gateway_nlb.tf").read_text()
+        variables = (INFRA / "variables.tf").read_text()
+        self.assertIn("/healthz", nlb)
+        self.assertIn("var.gateway_admin_port", nlb)
+        self.assertIn("HTTP", nlb)
+        self.assertNotIn('healthcheck-port"                 = "25565"', nlb)
+        self.assertNotIn("healthcheck-port\"                 = 25565", nlb)
+        self.assertIn("gateway_admin_port != var.gateway_minecraft_port", variables)
+        self.assertIn("25565", variables)
+        self.assertIn("8080", variables)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 

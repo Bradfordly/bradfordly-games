@@ -40,6 +40,23 @@ variable "route53_zone_id" {
   default     = ""
 }
 
+variable "gateway_minecraft_port" {
+  type        = number
+  description = "Public NLB listener and gateway Minecraft TCP port."
+  default     = 25565
+}
+
+variable "gateway_admin_port" {
+  type        = number
+  description = "Gateway admin HTTP port for NLB and Kubernetes health checks. Must not be the Minecraft port."
+  default     = 8080
+
+  validation {
+    condition     = var.gateway_admin_port != var.gateway_minecraft_port
+    error_message = "NLB health checks must not use the Minecraft port (25565)."
+  }
+}
+
 variable "lbc_image" {
   type        = string
   description = "AWS Load Balancer Controller image. Runs as a Deployment on Fargate, not a DaemonSet."
