@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{.Title}} · Bradfordly Games</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid #ddd; }
+    .failed { color: #9b1c1c; font-weight: 600; }
+    .asleep { color: #1f4b2d; }
+    header { display: flex; justify-content: space-between; align-items: baseline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Worlds</h1>
+    <p>{{if .User}}{{.User.Email}} · {{end}}<a href="/logout">Log out</a></p>
+  </header>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Game</th>
+        <th>Allocation</th>
+        <th>Gateway state</th>
+        <th>Container</th>
+        <th>Players</th>
+        <th>Idle timer</th>
+        <th>Last wake</th>
+        <th>Last forced stop</th>
+        <th>Hours online (1d)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Worlds}}
+      <tr>
+        <td><a href="/worlds/{{.ID}}">{{.Name}}</a></td>
+        <td>{{.Game}}</td>
+        <td>{{.AllocationString}}</td>
+        <td class="{{if eq .State `failed`}}failed{{else if .AsleepHint}}asleep{{end}}">
+          {{.State}}{{if .AsleepHint}} — join the game to start{{end}}{{if .LastError}} ({{.LastError}}){{end}}
+        </td>
+        <td>{{if .ContainerRunning}}running{{else}}stopped{{end}}</td>
+        <td>{{players .Players}}</td>
+        <td>{{.IdleTimer}}</td>
+        <td>{{if .LastWakeCause}}{{.LastWakeCause}} at {{stamp .LastWakeAt}}{{else}}none{{end}}</td>
+        <td>{{stamp .LastForcedStopAt}}</td>
+        <td>{{hours .HoursOnlineLastDay}}</td>
+      </tr>
+      {{else}}
+      <tr><td colspan="10">No worlds yet.</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</body>
+</html>

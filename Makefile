@@ -1,4 +1,4 @@
-.PHONY: build panel gateway test clean
+.PHONY: build panel gateway test cover bdd clean
 
 build: panel gateway
 
@@ -11,5 +11,12 @@ gateway:
 test:
 	go test ./...
 
+cover:
+	go test -coverprofile=coverage.out -coverpkg=./internal/panel ./internal/panel
+	go tool cover -func=coverage.out
+
+bdd:
+	go test -v ./internal/panel -run TestFeatures
+
 clean:
-	rm -rf bin
+	rm -rf bin coverage.out
