@@ -7,7 +7,7 @@ alwaysApply: true
 
 Follow [AGENTS.md](../../AGENTS.md) for board, commits, PRs, versions, coverage, and BDD.
 
-If the request is planning, documentation, or config, do not implement and do not dispatch.
+If the request is planning, documentation, or config, do not implement and do not dispatch. Documentation and config-change issues belong to the operator agent.
 
 ## Dispatch
 

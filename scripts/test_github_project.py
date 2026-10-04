@@ -104,6 +104,17 @@ class Rules(unittest.TestCase):
         self.assertIn("DRY: keep one representation of each rule or piece of logic.", rules)
         self.assertIn("KISS: use the simplest implementation that meets the requirement.", rules)
 
+    def test_operator_agent_takes_documentation_and_config_change(self) -> None:
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn(
+            "The operator agent implements issues labeled `documentation` or `config change`.",
+            rules,
+        )
+        self.assertIn("It does not take `feature` or `bug fix`.", rules)
+        self.assertIn("ADR-0007", rules)
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn("The operator agent takes `documentation` and `config change`.", readme)
+
     def test_builder_agent_takes_feature_and_bug_fix(self) -> None:
         rules = (ROOT / "AGENTS.md").read_text()
         self.assertIn(

@@ -37,6 +37,16 @@ Follow YAGNI, DRY, and KISS.
 - After @Bradfordly merges the pull request, the linked issue is closed. Do not close an issue while its pull request is still open.
 - Do not open implementation issues until the design has been agreed and split into tasks. A design note still waits for @Bradfordly to apply the `documentation` label.
 
+## Operator agent
+
+The operator agent implements issues labeled `documentation` or `config change`. It does not take `feature` or `bug fix`. Decision: [ADR-0007](docs/ADRs/ADR-0007-operator-agent.md).
+
+- Keep `docs/specs/` and `docs/ADRs/` organized. Follow the templates in `docs/templates/`.
+- Every config change cites the spec section and/or ADR that authorizes it. If none exists, stop and ask for a planning design note.
+- Implement in this checkout. Do not dispatch cloud sub-agents.
+
+After the category label exists, the operator assigns @Bradfordly and implements.
+
 ## Builder agent
 
 The builder agent implements issues labeled `feature` or `bug fix`. It does not take `documentation` or `config change`.
