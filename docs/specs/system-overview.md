@@ -102,8 +102,10 @@ These are the defaults from the approved design. Change them only with a new ADR
 | --- | --- |
 | First adapter | Minecraft Java |
 | Later adapters | Valheim, Palworld (specified, not built in v1) |
-| Panel access | OIDC + allowlist, invite-only |
+| Panel access | GitHub OIDC + SSM allowlist, invite-only |
 | Orchestrator | One public EC2 (`t3.medium` for v1) + Docker |
+| Panel and gateway | Docker containers on the host daemon |
+| World records | SQLite on the 50 GB data volume |
 | Minecraft proxy | `mc-router` Docker mode |
 | Idle timeout | Per world; default minutes, not seconds |
 | Containers per world | 0 running or 1 running |
@@ -121,15 +123,6 @@ Full tables: [ADR-0006](../ADRs/ADR-0006-pack-on-public-ec2.md) and [operations.
 | A EKS Fargate | ~$182 | Rejected. |
 
 us-east-1 On-Demand list prices, October 2026 snapshot. Budget model, not a quote.
-
-## Open questions
-
-These are not blockers for documentation. Resolve them in implementation issues after the design is split into tasks.
-
-- GitHub versus Google as the first OIDC issuer.
-- Panel and gateway as systemd units versus containers.
-- SQLite versus a JSON file for world records.
-- Root volume only versus a separate data volume for saves and snapshots.
 
 ## Version
 

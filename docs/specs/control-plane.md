@@ -13,8 +13,8 @@ Invite-only. Bradfordly and named friends. Not a public host. Every allowlisted 
 ## Identity
 
 - All HTML routes and JSON APIs require a session, except `GET /healthz`.
-- Browser: OIDC authorization code flow (GitHub or Google; pick one in the first implementation issue).
-- After the provider returns, the server checks the email or subject against an allowlist (environment or ConfigMap). Fail closed.
+- Browser: GitHub OIDC authorization code flow.
+- After the provider returns, the server checks the email or subject against an allowlist in SSM Parameter Store. Fail closed.
 - API clients that are browsers use the session cookie (`Secure`, `HttpOnly`, `SameSite=Lax`) on `games.bradfordly.com`.
 - The gateway talks to the Docker API on the host, not OIDC user tokens.
 - Logout clears the session.
@@ -95,14 +95,9 @@ The control plane is the only writer of world *spec*. The gateway is the only wr
 
 ## Persistence of panel data
 
-World records need a store the panel can read after restart. v1 options, pick the smallest that works:
+World records are a SQLite file on the data volume. Do not add RDS, Aurora, DynamoDB, or a JSON-file store in v1. YAGNI.
 
-1. A SQLite file on the data volume, or
-2. A JSON file on the data volume.
-
-Do not add RDS, Aurora, or DynamoDB in v1. YAGNI.
-
-Allowlist stays in SSM or a file, not in the world store.
+Allowlist stays in SSM Parameter Store, not in the world store.
 
 ## Cost comparison
 
