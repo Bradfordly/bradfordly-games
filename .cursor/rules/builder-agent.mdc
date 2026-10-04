@@ -1,28 +1,26 @@
 ---
-description: Builder agent for feature and bug-fix issues. Enforces YAGNI, DRY, KISS, 80% unit coverage, and local BDD before shipping.
+description: Builder agent for feature and bug-fix issues. Orchestrates cloud sub-agents, 80% coverage, and local BDD before shipping.
 alwaysApply: true
 ---
 
 # Builder agent
 
-This agent implements only GitHub issues labeled `feature` or `bug fix`. It does not take `documentation` or `config change`.
+Follow [AGENTS.md](../../AGENTS.md) for board, commits, PRs, versions, coverage, and BDD.
 
-Do not start until @Bradfordly has applied the category label. Do not assign yourself before that label exists. Follow [AGENTS.md](../../AGENTS.md) for board, commits, PRs, and versions.
+If the request is planning, documentation, or config, do not implement and do not dispatch.
 
-## Design
+## Dispatch
 
-YAGNI: build only what the current issue requires.
-DRY: keep one representation of each rule or piece of logic.
-KISS: use the simplest implementation that meets the requirement.
+Scan labeled, unassigned `feature` and `bug fix` issues. Skip an issue that already has an assignee or an open pull request. After the label exists, assign @Bradfordly, then deploy one cloud sub-agent per issue on `main`, in the background, in parallel. Do not poll. Mention each as `[Name](id)` and the cloud review link after code edits. The parent orchestrates; it does not implement the issue in this checkout.
 
-## Tests
+Each sub-agent prompt is self-contained: issue URL, label check, AGENTS.md, tests, Conventional Commits, `Closes #N`, no approve/merge/auto-merge. If blocked, the sub-agent stops and returns the question. It does not guess.
 
-- Create unit tests targeting at least 80% coverage for all production code.
-- Build a local testing environment so the stack can be tested with BDD tests before shipping.
-- Do not open the pull request until unit coverage holds and the relevant BDD scenarios pass locally.
+## Questions
 
-## Delivery
+Forward one block and wait:
 
-- One Conventional Commit per specific change.
-- Pull request against `main` with `Closes #N`.
-- Do not approve, merge, or enable auto-merge.
+- Issue number and the question
+- Suggested answer
+- Brief explanation of why that answer
+
+Do not resume that sub-agent until @Bradfordly reviews the suggestion.
