@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0006](ADR-0006-pack-on-public-ec2.md)
+
+Saves are EBS bind mounts. Ingress is one Elastic IP (Caddy for the panel, host ports for games). There is no EFS, ALB, NLB, or ClusterIP.
 
 ## Date
 

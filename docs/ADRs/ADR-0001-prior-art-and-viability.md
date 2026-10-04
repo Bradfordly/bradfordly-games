@@ -102,4 +102,4 @@ The proposed system is **viable for a personal or small-community panel**, with 
 - Later ADRs can assume "custom control plane plus always-on gateway" rather than "install Pelican."
 - Implementation specs must describe per-game adapters, not a single L4 proxy.
 - Cold start is a product feature. Specs must say what the player sees while a world is booting.
-- Cost only works if worlds are idle most of the day. The EKS control plane fee is paid even at zero game pods; [ADR-0002](ADR-0002-reject-wings-use-eks-fargate.md) records that trade-off.
+- Cost on the chosen host ([ADR-0006](ADR-0006-pack-on-public-ec2.md)) is the EC2 instance, billed whether worlds sleep or not. Idle is for RAM and UX, not the AWS bill.

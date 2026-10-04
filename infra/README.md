@@ -1,6 +1,6 @@
 # Cluster infrastructure
 
-Terraform for the v1 EKS Fargate cluster. Spec: [docs/specs/operations.md](../docs/specs/operations.md), [ADR-0002](../docs/ADRs/ADR-0002-reject-wings-use-eks-fargate.md).
+Terraform for the **rejected** EKS Fargate cluster. v1 runtime is one public EC2 host ([ADR-0006](../docs/ADRs/ADR-0006-pack-on-public-ec2.md)). Do not apply this stack for the product.
 
 This stack creates:
 

@@ -27,5 +27,5 @@ Agent operating rules are in [AGENTS.md](../AGENTS.md). The operator agent keeps
 | [ADR-0003](ADRs/ADR-0003-edge-gateway-first.md) | Accepted (runtime amended by ADR-0006) |
 | [ADR-0004](ADRs/ADR-0004-persistence-and-networking.md) | Superseded by ADR-0006 |
 | [ADR-0005](ADRs/ADR-0005-identity-for-games-bradfordly.md) | Accepted |
-| [ADR-0006](ADRs/ADR-0006-pack-on-public-ec2.md) | Proposed |
+| [ADR-0006](ADRs/ADR-0006-pack-on-public-ec2.md) | Accepted |
 | [ADR-0007](ADRs/ADR-0007-operator-agent.md) | Accepted |
