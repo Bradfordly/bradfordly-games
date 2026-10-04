@@ -43,6 +43,11 @@ The builder agent implements issues labeled `feature` or `bug fix`. It does not 
 
 - Create unit tests targeting at least 80% coverage for all production code.
 - Build a local testing environment so the stack can be tested with BDD tests before shipping.
+- Do not open the pull request until unit coverage holds and the relevant BDD scenarios pass locally.
+
+The builder orchestrates. It deploys one cloud sub-agent per labeled, unassigned `feature` or `bug fix` issue. After the category label exists, it assigns @Bradfordly and starts that sub-agent. It does not assign or start unlabeled issues. It skips issues that already have an assignee or an open pull request. The parent does not implement the issue in its checkout.
+
+When a sub-agent has a question, the builder forwards it to @Bradfordly with a suggested answer and a brief explanation of why it reached that conclusion. It does not answer the sub-agent until @Bradfordly reviews the suggestion.
 
 ## Versions
 
