@@ -39,6 +39,35 @@ func TestFollowOnProfilesAreNotShipped(t *testing.T) {
 	}
 }
 
+func TestMinecraftJavaDockerResources(t *testing.T) {
+	p := MinecraftJavaProfile
+	mem, err := p.MemoryBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mem != 2<<30 {
+		t.Fatalf("MemoryBytes = %d, want 2Gi", mem)
+	}
+	cpus, err := p.NanoCPUs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cpus != 1_000_000_000 {
+		t.Fatalf("NanoCPUs = %d, want 1 vCPU", cpus)
+	}
+
+	bad := Profile{CPU: "x", Memory: "2Mi"}
+	if _, err := bad.NanoCPUs(); err == nil {
+		t.Fatal("bad cpu")
+	}
+	if _, err := bad.MemoryBytes(); err == nil {
+		t.Fatal("bad memory")
+	}
+	if _, err := (Profile{Memory: "xGi"}).MemoryBytes(); err == nil {
+		t.Fatal("bad Gi")
+	}
+}
+
 func hasEnv(env []EnvVar, name, value string) bool {
 	for _, item := range env {
 		if item.Name == name && item.Value == value {
