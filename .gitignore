@@ -40,3 +40,4 @@ terraform.tfvars
 
 # Go
 bin/
+coverage.out
