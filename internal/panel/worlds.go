@@ -37,6 +37,12 @@ func (s *Server) handleCreateWorld(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
+	if s.cfg.Reconcile != nil {
+		if err := s.cfg.Reconcile.EnsureSleeping(r.Context(), created); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
 	writeJSON(w, http.StatusCreated, s.view(r.Context(), created))
 }
 

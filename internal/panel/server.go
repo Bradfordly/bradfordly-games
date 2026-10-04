@@ -20,6 +20,7 @@ type Config struct {
 	Now           func() time.Time
 	Store         world.Store
 	States        States
+	Reconcile     Reconciler
 }
 
 // Server is the authenticated control plane.
@@ -64,6 +65,9 @@ func New(cfg Config) *Server {
 	}
 	if cfg.Store == nil {
 		cfg.Store = world.NewMemoryStore()
+	}
+	if cfg.Reconcile == nil {
+		cfg.Reconcile = sleepingReconcilerFromEnv()
 	}
 	return &Server{cfg: cfg}
 }
