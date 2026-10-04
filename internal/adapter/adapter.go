@@ -41,22 +41,42 @@ const (
 	StateFailed   WorldState = "failed"
 )
 
+type OccupyMode string
+
+const (
+	OccupyModeKick  OccupyMode = "kick"
+	OccupyModeHold  OccupyMode = "hold"
+	OccupyModeRetry OccupyMode = "retry"
+)
+
 type Allocation struct {
 	Host     string
 	Port     int
 	Protocol string
 }
 
+type Backend struct {
+	Container string
+	Address   string
+}
+
 type World struct {
-	ID         string
-	Game       string
-	Allocation Allocation
+	ID            string
+	Name          string
+	Game          string
+	Allocation    Allocation
+	Backend       Backend
+	OccupyMode    OccupyMode
+	AsleepMOTD    string
+	StartingMOTD  string
+	WakeWhitelist []string
 }
 
 type Event struct {
-	Intent Intent
-	Player string
-	World  *World
+	Intent           Intent
+	Player           string
+	World            *World
+	WhitelistChecked bool
 }
 
 // Adapter is the per-game interface from docs/specs/edge-gateway.md.
