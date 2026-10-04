@@ -57,6 +57,39 @@ func TestMinecraftMatchAndDefaults(t *testing.T) {
 	}
 }
 
+func TestMinecraftActivityFromPlayCounts(t *testing.T) {
+	plays := NewPlayCounts()
+	a := NewMinecraftJava(plays)
+	world := &World{ID: "survival", Game: GameMinecraftJava}
+
+	plays.Set("survival", 3)
+	players, unknown := a.Activity(world)
+	if players != 3 || unknown {
+		t.Fatalf("Activity = %d, unknown=%v; want 3, known", players, unknown)
+	}
+
+	plays.Set("survival", 0)
+	players, unknown = a.Activity(world)
+	if players != 0 || unknown {
+		t.Fatalf("Activity after empty = %d, unknown=%v; want 0, known", players, unknown)
+	}
+
+	if n, unknown := NewPlayCounts().Get("missing"); n != 0 || unknown {
+		t.Fatalf("missing world Get = %d, unknown=%v; want 0, known", n, unknown)
+	}
+
+	var none *PlayCounts
+	none.Set("survival", 1)
+	if n, unknown := none.Get("survival"); n != 0 || unknown {
+		t.Fatalf("nil PlayCounts Get = %d, unknown=%v", n, unknown)
+	}
+	empty := &PlayCounts{}
+	empty.Set("survival", 2)
+	if n, unknown := empty.Get("survival"); n != 2 || unknown {
+		t.Fatalf("lazy PlayCounts = %d, unknown=%v", n, unknown)
+	}
+}
+
 func TestUDPNotImplemented(t *testing.T) {
 	for _, game := range []string{GameValheim, GamePalworld} {
 		a, ok := NewRegistry().ForGame(game)
