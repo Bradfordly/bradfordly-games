@@ -124,6 +124,37 @@ class Rules(unittest.TestCase):
             "Build a local testing environment so the stack can be tested with BDD tests before shipping.",
             rules,
         )
+        self.assertIn(
+            "Do not open the pull request until unit coverage holds and the relevant BDD scenarios pass locally.",
+            rules,
+        )
+
+    def test_builder_orchestrates_cloud_sub_agents(self) -> None:
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn(
+            "The builder orchestrates. It deploys one cloud sub-agent per labeled, unassigned `feature` or `bug fix` issue.",
+            rules,
+        )
+        self.assertIn(
+            "After the category label exists, it assigns @Bradfordly and starts that sub-agent.",
+            rules,
+        )
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn(
+            "It deploys a cloud sub-agent to each labeled, unassigned `feature` or `bug fix` issue.",
+            readme,
+        )
+
+    def test_builder_forwards_sub_agent_questions(self) -> None:
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn(
+            "When a sub-agent has a question, the builder forwards it to @Bradfordly with a suggested answer and a brief explanation",
+            rules,
+        )
+        self.assertIn(
+            "It does not answer the sub-agent until @Bradfordly reviews the suggestion.",
+            rules,
+        )
 
 
 class BoardRules(unittest.TestCase):
