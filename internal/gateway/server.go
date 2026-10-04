@@ -131,11 +131,11 @@ func (s *Server) handleConn(conn net.Conn) {
 		return
 	}
 
-	loginFrame, err := mcproto.ReadFrameBytes(conn)
-	if err != nil {
+	if intent != adapter.IntentLogin {
 		return
 	}
-	if !mc.ShouldWake(adapter.Event{Intent: intent, World: world}) {
+	loginFrame, err := mcproto.ReadFrameBytes(conn)
+	if err != nil {
 		return
 	}
 	s.handleLogin(conn, world, hs, loginFrame)

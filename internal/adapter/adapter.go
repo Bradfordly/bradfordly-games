@@ -49,17 +49,19 @@ type Allocation struct {
 }
 
 type World struct {
-	ID           string
-	Game         string
-	Allocation   Allocation
-	State        WorldState
-	AsleepMOTD   string
-	StartingMOTD string
-	Replicas     int
-	Backend      string
-	StartTimeout time.Duration
-	IdleTimeout  time.Duration
-	StopTimeout  time.Duration
+	ID            string
+	Game          string
+	Allocation    Allocation
+	State         WorldState
+	AsleepMOTD    string
+	StartingMOTD  string
+	Replicas      int
+	Backend       string
+	StartTimeout  time.Duration
+	IdleTimeout   time.Duration
+	StopTimeout   time.Duration
+	OccupyMode    OccupyAction
+	WakeWhitelist []string
 }
 
 type Event struct {

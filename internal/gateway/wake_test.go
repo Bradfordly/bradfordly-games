@@ -132,6 +132,7 @@ func TestLoginStartTimeoutScalesBackToZero(t *testing.T) {
 		State:        adapter.StateAsleep,
 		Backend:      "127.0.0.1:1",
 		StartTimeout: 80 * time.Millisecond,
+		OccupyMode:   adapter.OccupyHold,
 	}
 	srv, addr := startTestServer(t, world)
 	conn := loginAndMaybeProxy(t, addr, "survival.games.bradfordly.com", "alex")
@@ -155,6 +156,7 @@ func TestWakeRateLimit(t *testing.T) {
 		State:        adapter.StateAsleep,
 		Backend:      "127.0.0.1:1",
 		StartTimeout: 30 * time.Millisecond,
+		OccupyMode:   adapter.OccupyHold,
 	}
 	srv := New("127.0.0.1:0", "127.0.0.1:0")
 	srv.WakeInterval = time.Hour

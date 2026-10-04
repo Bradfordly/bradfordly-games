@@ -13,6 +13,7 @@ import (
 
 const defaultWakeInterval = 30 * time.Second
 const defaultStartTimeout = 10 * time.Minute
+const kickHold = 100 * time.Millisecond
 
 func WakeCause(player string) string {
 	return "minecraft_login:" + player
@@ -63,13 +64,14 @@ func (s *Server) handleLogin(conn net.Conn, world *adapter.World, hs mcproto.Han
 	if err != nil {
 		player = "unknown"
 	}
-	cause := WakeCause(player)
-	log.Printf("wake world=%s cause=%s", world.ID, cause)
 
 	mc, ok := s.Adapters.ForGame(adapter.GameMinecraftJava)
 	if !ok || !mc.ShouldWake(adapter.Event{Intent: adapter.IntentLogin, Player: player, World: world}) {
+		log.Printf("false-wake reject world=%s player=%s", world.ID, player)
 		return
 	}
+	cause := WakeCause(player)
+	log.Printf("wake world=%s cause=%s", world.ID, cause)
 
 	lock := s.wakes.lock(world.ID)
 	lock.Lock()
@@ -100,10 +102,18 @@ func (s *Server) handleLogin(conn net.Conn, world *adapter.World, hs mcproto.Han
 	if timeout <= 0 {
 		timeout = defaultStartTimeout
 	}
-	ready = waitReady(current.Backend, timeout)
+	action := mc.Occupy(current, current.State)
+	hold := timeout
+	if action == adapter.OccupyKick {
+		hold = kickHold
+	}
+	if action == adapter.OccupyRetry {
+		hold = 0
+	}
+	ready = waitReady(current.Backend, hold)
 	if ready {
 		s.Catalog.SetState(world.ID, adapter.StateOnline)
-	} else {
+	} else if action == adapter.OccupyHold {
 		s.Catalog.SetState(world.ID, adapter.StateFailed)
 		_ = s.Scaler.SetReplicas(world.ID, 0)
 		s.Catalog.SetReplicas(world.ID, 0)
@@ -111,10 +121,13 @@ func (s *Server) handleLogin(conn net.Conn, world *adapter.World, hs mcproto.Han
 	backend := current.Backend
 	lock.Unlock()
 
-	if !ready {
+	if ready {
+		s.proxyLogin(conn, world.ID, backend, hs, loginFrame)
 		return
 	}
-	s.proxyLogin(conn, world.ID, backend, hs, loginFrame)
+	if action == adapter.OccupyKick {
+		_ = mcproto.WriteLoginDisconnect(conn, mcproto.StartingKickMessage)
+	}
 }
 
 func waitReady(addr string, timeout time.Duration) bool {
