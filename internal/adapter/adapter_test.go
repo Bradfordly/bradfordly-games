@@ -34,6 +34,14 @@ func TestMinecraftShouldWake(t *testing.T) {
 	if !a.ShouldWake(Event{Intent: IntentLogin, World: world}) {
 		t.Fatal("login must be allowed to wake")
 	}
+
+	listed := &World{ID: "survival", Game: GameMinecraftJava, WakeWhitelist: []string{"Alex"}}
+	if a.ShouldWake(Event{Intent: IntentLogin, Player: "bob", World: listed}) {
+		t.Fatal("name not on wake_whitelist must not wake")
+	}
+	if !a.ShouldWake(Event{Intent: IntentLogin, Player: "alex", World: listed}) {
+		t.Fatal("whitelisted name may wake")
+	}
 }
 
 func TestMinecraftClassifyHandshake(t *testing.T) {

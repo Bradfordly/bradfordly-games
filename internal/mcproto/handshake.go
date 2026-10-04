@@ -83,6 +83,44 @@ func WriteStatusRequest(w io.Writer) error {
 	return writeFrame(w, appendVarInt(nil, 0))
 }
 
+const StartingKickMessage = "Server is starting, join again."
+
+func WriteLoginDisconnect(w io.Writer, reason string) error {
+	body, err := json.Marshal(map[string]any{"text": reason})
+	if err != nil {
+		return err
+	}
+	var payload []byte
+	payload = appendVarInt(payload, 0)
+	payload = appendString(payload, string(body))
+	return writeFrame(w, payload)
+}
+
+func ReadDisconnectText(r io.Reader) (string, error) {
+	payload, err := readFrame(r)
+	if err != nil {
+		return "", err
+	}
+	packetID, err := readVarInt(payload)
+	if err != nil {
+		return "", err
+	}
+	if packetID != 0 {
+		return "", errors.New("not a disconnect packet")
+	}
+	raw, err := readString(payload)
+	if err != nil {
+		return "", err
+	}
+	var msg struct {
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal([]byte(raw), &msg); err != nil {
+		return "", err
+	}
+	return msg.Text, nil
+}
+
 func WriteStatus(w io.Writer, motd string, protocol int) error {
 	body, err := json.Marshal(map[string]any{
 		"version": map[string]any{

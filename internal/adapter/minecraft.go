@@ -3,6 +3,7 @@ package adapter
 import (
 	"bytes"
 	"net"
+	"strings"
 
 	"github.com/bradfordly/bradfordly-games/internal/mcproto"
 )
@@ -54,7 +55,22 @@ func IntentFromNextState(next int) Intent {
 }
 
 func (minecraftJava) ShouldWake(e Event) bool {
-	return e.Intent == IntentLogin
+	if e.Intent != IntentLogin {
+		return false
+	}
+	if e.World != nil && len(e.World.WakeWhitelist) > 0 {
+		return onWhitelist(e.World.WakeWhitelist, e.Player)
+	}
+	return true
+}
+
+func onWhitelist(names []string, player string) bool {
+	for _, n := range names {
+		if strings.EqualFold(n, player) {
+			return true
+		}
+	}
+	return false
 }
 
 func (minecraftJava) ServeStatus(conn net.Conn, world *World, state WorldState, protocol int) error {
@@ -75,7 +91,12 @@ func MOTD(world *World, state WorldState) string {
 	return world.AsleepMOTD
 }
 
-func (minecraftJava) Occupy(*World, WorldState) OccupyAction { return OccupyKick }
+func (minecraftJava) Occupy(world *World, _ WorldState) OccupyAction {
+	if world == nil {
+		return OccupyKick
+	}
+	return world.OccupyMode
+}
 
 func (minecraftJava) Activity(*World) (int, bool) { return 0, false }
 
