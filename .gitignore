@@ -37,3 +37,6 @@ override.tf.json
 *_override.tf.json
 *.auto.tfvars
 terraform.tfvars
+
+# Go
+bin/
