@@ -29,6 +29,17 @@ func TestMinecraftShouldWake(t *testing.T) {
 	if !a.ShouldWake(Event{Intent: IntentLogin, World: world}) {
 		t.Fatal("login must be allowed to wake")
 	}
+
+	listed := &World{ID: "survival", Game: GameMinecraftJava, WakeWhitelist: []string{"Steve"}}
+	if a.ShouldWake(Event{Intent: IntentLogin, World: listed, Player: "Alex"}) {
+		t.Fatal("non-whitelisted login must not wake")
+	}
+	if !a.ShouldWake(Event{Intent: IntentLogin, World: listed, Player: "steve"}) {
+		t.Fatal("whitelisted login must wake")
+	}
+	if !a.ShouldWake(Event{Intent: IntentLogin, World: listed, WhitelistChecked: true, Player: "Alex"}) {
+		t.Fatal("mc-router already applied the whitelist")
+	}
 }
 
 func TestMinecraftMatchAndDefaults(t *testing.T) {
@@ -46,8 +57,44 @@ func TestMinecraftMatchAndDefaults(t *testing.T) {
 	if a.Match([]*World{world}, Allocation{Host: "other.example"}, nil) != nil {
 		t.Fatal("Match should miss a different hostname")
 	}
+	if a.Occupy(nil, StateAsleep) != OccupyKick {
+		t.Fatal("nil world occupy is kick")
+	}
 	if a.Occupy(world, StateAsleep) != OccupyKick {
 		t.Fatal("minecraft occupy default is kick")
+	}
+	hold := *world
+	hold.OccupyMode = OccupyModeHold
+	if a.Occupy(&hold, StateStarting) != OccupyHold {
+		t.Fatal("occupy_mode hold must hold")
+	}
+	retry := *world
+	retry.OccupyMode = OccupyModeRetry
+	if a.Occupy(&retry, StateStarting) != OccupyRetry {
+		t.Fatal("occupy_mode retry must retry")
+	}
+	if a.Classify(nil) != IntentOther {
+		t.Fatal("Classify must not parse a handshake")
+	}
+	if err := a.ServeStatus(nil, world, StateAsleep); err != nil {
+		t.Fatal(err)
+	}
+	if StartingMessage(nil) != DefaultStartingMOTD {
+		t.Fatal("default starting message")
+	}
+	world.StartingMOTD = "booting"
+	if StartingMessage(world) != "booting" {
+		t.Fatal("custom starting message")
+	}
+	if WakeAllowed(nil, "Steve") != true {
+		t.Fatal("nil world allows wake")
+	}
+	listed := &World{WakeWhitelist: []string{"Steve"}}
+	if WakeAllowed(listed, "") {
+		t.Fatal("empty player is not on the whitelist")
+	}
+	if a.Match([]*World{nil, world}, Allocation{Host: "other"}, nil) != nil {
+		t.Fatal("nil and mismatch")
 	}
 	if players, unknown := a.Activity(world); players != 0 || unknown {
 		t.Fatalf("Activity = %d, unknown=%v; want 0, known", players, unknown)
@@ -77,6 +124,12 @@ func TestUDPNotImplemented(t *testing.T) {
 		}
 		if _, unknown := a.Activity(nil); !unknown {
 			t.Fatalf("%s Activity must be unknown", game)
+		}
+		if a.Match(nil, Allocation{}, nil) != nil {
+			t.Fatalf("%s Match must miss", game)
+		}
+		if a.Classify(nil) != IntentOther {
+			t.Fatalf("%s Classify must be other", game)
 		}
 	}
 }
