@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Worlds</title>
+</head>
+<body>
+  <h1>Worlds</h1>
+  <p><a href="/logout">Log out</a></p>
+  {{if .Worlds}}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Game</th>
+        <th>State</th>
+        <th>Allocation</th>
+        <th>Players</th>
+        <th>Idle</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Worlds}}
+      <tr>
+        <td><a href="/worlds/{{.ID}}">{{.Name}}</a></td>
+        <td>{{.Game}}</td>
+        <td>{{template "state" .}}</td>
+        <td>{{.AllocationString}}</td>
+        <td>{{if .PlayerCount}}{{.PlayerCount}}{{else}}—{{end}}</td>
+        <td>{{if eq .State "idle_wait"}}{{.IdleRemaining}}{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p>No worlds yet.</p>
+  {{end}}
+</body>
+</html>

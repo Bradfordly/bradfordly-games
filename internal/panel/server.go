@@ -19,6 +19,7 @@ type Config struct {
 	Exchanger     Exchanger
 	Now           func() time.Time
 	Store         world.Store
+	States        States
 }
 
 // Server is the authenticated control plane.

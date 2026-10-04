@@ -1,0 +1,9 @@
+{{define "state"}}
+{{if eq .State "failed"}}
+<span class="failed">failed{{if .LastError}}: {{.LastError}}{{end}}</span>
+{{else if eq .State "asleep"}}
+<span class="asleep">asleep — join the game to start</span>
+{{else}}
+{{.State}}
+{{end}}
+{{end}}
