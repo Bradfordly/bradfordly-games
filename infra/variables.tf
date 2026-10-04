@@ -28,6 +28,12 @@ variable "cluster_endpoint_public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "world_ids" {
+  type        = list(string)
+  description = "World IDs that get an EFS access point at /worlds/<id>. Leave empty and create access points by hand for the first worlds."
+  default     = []
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags applied to every AWS resource via the provider default_tags."

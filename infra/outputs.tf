@@ -38,6 +38,16 @@ output "public_subnet_ids" {
   value       = [for subnet in aws_subnet.public : subnet.id]
 }
 
+output "efs_file_system_id" {
+  description = "EFS file system for world saves."
+  value       = aws_efs_file_system.worlds.id
+}
+
+output "efs_access_point_ids" {
+  description = "Access point IDs keyed by world ID. Empty until world_ids is set."
+  value       = { for id, ap in aws_efs_access_point.world : id => ap.id }
+}
+
 output "namespaces" {
   description = "Application namespaces created on the cluster."
   value       = [for ns in kubernetes_namespace.this : ns.metadata[0].name]

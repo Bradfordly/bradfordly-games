@@ -1,0 +1,48 @@
+# Static EFS bind for one world. Fargate does not support dynamic EFS
+# provisioning. Replace FILE_SYSTEM_ID, ACCESS_POINT_ID, and WORLD_ID.
+#
+# Access-point convention (infra/efs.tf):
+#   path /worlds/<world_id>
+#   posix uid/gid 1000
+#   volumeHandle FILE_SYSTEM_ID::ACCESS_POINT_ID
+#
+# Create the access point by hand or with:
+#   terraform apply -var='world_ids=["WORLD_ID"]'
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-static
+provisioner: efs.csi.aws.com
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: world-WORLD_ID
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: efs-static
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: FILE_SYSTEM_ID::ACCESS_POINT_ID
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: world-WORLD_ID
+  namespace: games-worlds
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-static
+  volumeName: world-WORLD_ID
+  resources:
+    requests:
+      storage: 20Gi
