@@ -23,8 +23,8 @@ type Profile struct {
 	MountPath string
 }
 
-// MinecraftJavaProfile is the vanilla EKS Fargate starting point.
-// CPU and memory are Kubernetes quantities (1 vCPU / 2 GiB).
+// MinecraftJavaProfile is the vanilla Docker starting point.
+// CPU and memory are 1 vCPU / 2 GiB.
 var MinecraftJavaProfile = Profile{
 	Game:      MinecraftJava,
 	Image:     "itzg/minecraft-server",
