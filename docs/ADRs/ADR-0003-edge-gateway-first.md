@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Accepted (runtime amended by [ADR-0006](ADR-0006-pack-on-public-ec2.md))
+
+The gateway is still the product. It is a process on the public EC2 host, not a Fargate Deployment behind an NLB. `mc-router` uses Docker mode.
 
 ## Date
 
@@ -18,8 +20,8 @@ Minecraft Java already has production-quality proxies that do this ([lazymc](htt
 
 ## Decision
 
-1. **The edge gateway is the v1 centerpiece.** The control plane exists to configure worlds, expose settings, and reconcile Kubernetes. The gateway owns wake, proxy, idle, and player-activity signals.
-2. **The gateway is an always-on Fargate Deployment** behind a Network Load Balancer. Game pods are backends, never the public listener.
+1. **The edge gateway is the v1 centerpiece.** The control plane exists to configure worlds, expose settings, and start/stop containers. The gateway owns wake, proxy, idle, and player-activity signals.
+2. **The gateway is an always-on process on the public EC2 host** ([ADR-0006](ADR-0006-pack-on-public-ec2.md)). Game containers are backends, never the public listener.
 3. **Game support is an adapter interface**, not a single packet pump. An adapter can:
    - distinguish a status/query from a login
    - decide whether to wake
@@ -27,7 +29,7 @@ Minecraft Java already has production-quality proxies that do this ([lazymc](htt
    - report player activity for the idle timer
    - request a graceful stop
 4. **v1 ships the Minecraft Java adapter.** Valheim and Palworld adapters are specified now and built later. UDP wake is "start the world and expect a retry," not "hold the datagram stream."
-5. **Reuse `mc-router` behavior for Minecraft Java** (hostname routing, asleep MOTD, StatefulSet `0/1` scale). Do not write a Java protocol proxy from scratch. A custom multi-game gateway process may embed that behavior or call it; it must still own the adapter interface for later UDP titles.
+5. **Reuse `mc-router` in Docker mode for Minecraft Java** (hostname routing, asleep MOTD, `docker start` / `docker stop`). Do not write a Java protocol proxy from scratch. A custom multi-game gateway process may embed that behavior or call it; it must still own the adapter interface for later UDP titles.
 6. **Wake only on a confirmed login or game handshake**, never on the first raw packet. Status pings may return an "asleep" or "starting" message without scaling up, unless a given adapter documents an exception.
 7. **Idle timeout is a per-server setting.** The gateway starts the stop timer when the adapter reports zero players, cancels it when a player is present, and will not use a default shorter than a flaky disconnect window (minutes, not seconds).
 
@@ -49,7 +51,7 @@ stateDiagram-v2
 
 ## Consequences
 
-- The gateway is always billed. That is the price of wake-on-connect.
+- The gateway process stays up with the EC2 host. On G, that does not add a separate Fargate line; the instance is already billed.
 - False-wake rules belong in each adapter spec. A shared L4 "any traffic wakes" mode is not allowed for UDP.
 - Minecraft can multiplex many worlds on one TCP listener via handshake hostname. UDP worlds cannot; they need a port or address per world ([ADR-0004](ADR-0004-persistence-and-networking.md)).
 - The control plane must not stop a world out from under the gateway. Scale-down is the gateway's job, or the control plane asks the gateway to drain.

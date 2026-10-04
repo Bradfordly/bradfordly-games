@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0006](ADR-0006-pack-on-public-ec2.md)
+
+The "do not deploy Wings" decision still stands. The EKS Fargate runtime does not.
 
 ## Date
 

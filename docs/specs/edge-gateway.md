@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The edge gateway is the always-on middleware between player clients and game worlds. It is the only public listener for game traffic. It detects a real login, starts a stopped world, proxies while players are present, and scales the world to zero after the configured idle timeout.
+The edge gateway is the always-on middleware between player clients and game worlds. It is the only public listener for game traffic. It detects a real login, starts a stopped world, proxies while players are present, and stops the container after the configured idle timeout.
 
 This is the primary implementation spec. Related documents:
 
@@ -13,13 +13,13 @@ This is the primary implementation spec. Related documents:
 
 ## Process shape
 
-- One Fargate Deployment, always at least one replica.
-- Listens on the ports the NLB forwards: TCP 25565 for Minecraft Java, plus one UDP port per allocated UDP world (later).
-- Exposes a loopback or cluster-only HTTP admin port for NLB/Kubernetes health checks and for the control plane to query state.
-- Uses an in-cluster Kubernetes client to scale the world's workload between 0 and 1.
-- Loads world config from the control plane API or from Kubernetes objects the control plane owns. It does not own idle-timeout as a hidden constant.
+- One process (or container) on the public EC2 host, always running.
+- Listens on host ports: TCP 25565 for Minecraft Java, plus one UDP port per allocated UDP world (later).
+- Exposes a localhost HTTP admin port for health checks and for the control plane to query state.
+- Uses the local Docker API to `docker start` / `docker stop` the world's container.
+- Loads world config from the control plane API or the on-disk world store. It does not own idle-timeout as a hidden constant.
 
-Do not put this process in the game pod.
+Do not put this process inside the game container. On G it can share the host with the panel.
 
 ## Adapter interface
 
@@ -41,7 +41,7 @@ Rules that apply to every adapter:
 - `ShouldWake` is false for status/query and for unclassified noise.
 - `ShouldWake` is true only for a confirmed login or the adapter's documented game handshake.
 - `Activity` returning `unknown` must not start the idle timer. Prefer a longer timeout over a false shutdown.
-- `GracefulStop` uses the game's documented signal or API, then the gateway waits up to `stop_timeout` before a hard scale-down.
+- `GracefulStop` uses the game's documented signal or API, then the gateway waits up to `stop_timeout` before a hard `docker kill`.
 
 v1 implements the Minecraft Java adapter. Valheim and Palworld are specified in [game-adapters.md](game-adapters.md) and return `not implemented` if selected.
 
@@ -51,8 +51,8 @@ The gateway keeps this state per world. The panel reads it.
 
 | State | Meaning |
 | --- | --- |
-| `asleep` | Workload replicas = 0. Listener still answers status. |
-| `starting` | Replicas = 1, backend not ready. |
+| `asleep` | Container stopped. Listener still answers status. |
+| `starting` | Container starting, backend not ready. |
 | `online` | Backend accepted a proxied connection or passed the adapter ready check. |
 | `idle_wait` | Online, zero players, timer running. |
 | `stopping` | Graceful stop in progress. |
@@ -61,12 +61,12 @@ The gateway keeps this state per world. The panel reads it.
 Transitions:
 
 1. `asleep` + status → stay `asleep`, serve asleep MOTD/status.
-2. `asleep` + confirmed login → set replicas to 1, enter `starting`.
+2. `asleep` + confirmed login → `docker start`, enter `starting`.
 3. `starting` + backend ready → `online`, apply Occupy (hold/kick/retry), then proxy.
-4. `starting` + `start_timeout` → `failed`, leave replicas at 1 or scale back to 0 per world setting (default: scale to 0 to avoid a stuck bill).
+4. `starting` + `start_timeout` → `failed`, default `docker stop` so a wedged boot does not pin RAM (the AWS bill does not change).
 5. `online` + zero players → `idle_wait`, start timer at `idle_timeout`.
 6. `idle_wait` + a player → cancel timer, `online`.
-7. `idle_wait` + timer fires → `stopping`, `GracefulStop`, wait, set replicas to 0, `asleep`.
+7. `idle_wait` + timer fires → `stopping`, `GracefulStop`, wait, container stopped, `asleep`.
 8. Control-plane manual stop → same as (7) even if players are present, after a panel warning.
 9. Control-plane manual start → same as (2) without a client to occupy.
 
@@ -74,24 +74,22 @@ A power lock prevents concurrent start/stop on one world, the same idea as Wings
 
 ## Minecraft Java behavior (v1)
 
-Reuse [itzg/mc-router](https://github.com/itzg/mc-router) behavior rather than inventing a handshake parser.
+Reuse [itzg/mc-router](https://github.com/itzg/mc-router) in **Docker mode** rather than inventing a handshake parser.
 
 - Route on the hostname in the handshake.
 - Status (`next state = 1`): answer immediately. If the backend is down, serve `asleep_motd`. If starting, serve `starting_motd`. If online, proxy to the backend or synthesize a live MOTD.
-- Login (`next state = 2`): `ShouldWake = true`. Scale the backend StatefulSet from 0 to 1 when needed.
+- Login (`next state = 2`): `ShouldWake = true`. `docker start` the backend container when needed.
 - Occupy default: **kick with a starting message** on the first login if the backend is not ready within a short hold window; a second login proxies. Optional **hold** if the world is expected to boot inside the client timeout (vanilla, not heavy modpacks).
 - Activity: count proxied play connections. A status ping is not activity.
-- Scale down: after `idle_timeout` with zero play connections, SIGTERM the backend (mc-router's Kubernetes path sets replicas to 0; the pod must trap SIGTERM so the image can flush).
+- Scale down: after `idle_timeout` with zero play connections, SIGTERM the backend (`docker stop`). The image must trap SIGTERM so it can flush to the bind mount.
 
-`mc-router` requires the workload `metadata.name` and `spec.serviceName` to match when it scales StatefulSets. The control plane must create worlds that way, or the gateway must expose an equivalent scale API and not call mc-router's scaler.
-
-Do not wake on a status ping. Server-list refresh must not start Fargate tasks.
+Do not wake on a status ping. Server-list refresh must not start containers.
 
 ## UDP behavior (follow-on)
 
 Until a UDP adapter is implemented:
 
-- Bind allocated UDP ports so NLB health is not the only consumer, but do not forward to a missing backend.
+- Bind allocated UDP ports on the host, but do not forward to a missing backend.
 - Do not scale up because a datagram arrived.
 
 When an adapter exists:
@@ -103,12 +101,12 @@ When an adapter exists:
 
 ## Scaling
 
-The gateway is the only writer of a world's replica count during normal play.
+The gateway is the only writer of a world's container running state during normal play.
 
 ```
 scale_up(world):
   acquire power lock
-  if replicas == 0: patch replicas = 1
+  if container stopped: docker start
   wait until ready or start_timeout
   release lock
 
@@ -116,13 +114,15 @@ scale_down(world):
   acquire power lock
   GracefulStop
   wait until process exited or stop_timeout
-  patch replicas = 0
+  docker stop
   release lock
 ```
 
-Ready means: the world's ClusterIP accepts the game port and the adapter's ready check passes (Minecraft handshake or TCP connect; Palworld REST; Valheim A2S or a TCP sidecar).
+Ready means: the container accepts the game port on the Docker network (or localhost published port) and the adapter's ready check passes (Minecraft handshake or TCP connect; Palworld REST; Valheim A2S).
 
-Kubernetes watches are allowed so the gateway notices pods disappearing. The gateway must not fight the control plane: if the control plane deletes a world, the gateway drops the allocation.
+Docker events are allowed so the gateway notices containers disappearing. The gateway must not fight the control plane: if the control plane deletes a world, the gateway drops the allocation.
+
+On G, stopping a container frees RAM. It does not change the AWS bill.
 
 ## Settings the gateway reads
 
@@ -136,7 +136,7 @@ Per world, from the control plane:
 | `asleep_motd` / `starting_motd` | Minecraft status text. |
 | `occupy_mode` | `hold`, `kick`, `retry`. Minecraft default `kick`. UDP forced `retry`. |
 | `wake_whitelist` | Optional Minecraft names that may wake the world. |
-| `allocation` | Public hostname and/or port, backend Service, protocol. |
+| `allocation` | Public hostname and/or port, backend container, protocol. |
 
 Global:
 
@@ -160,21 +160,26 @@ Global:
 - Metrics: wakes, false-wake rejects, scale errors, proxy connections, idle stops, start timeouts.
 - Structured logs: world id, state transition, player identifier when the protocol has one.
 
-NLB health checks hit `/healthz` over TCP/HTTP. They must not target a game port.
+Caddy or systemd may hit `/healthz` on localhost. They must not target a game port.
 
 ## Failure handling
 
 | Failure | Gateway action |
 | --- | --- |
-| Kubernetes patch fails | Stay in current state, return kick/retry to the client, surface `failed` to the panel. |
-| Backend ready too slow | `failed`, default scale to 0, MOTD explains the failure. |
+| Docker start/stop fails | Stay in current state, return kick/retry to the client, surface `failed` to the panel. |
+| Backend ready too slow | `failed`, default `docker stop`, MOTD explains the failure. |
 | Backend crash while online | Optional one restart (`wake_on_crash` default true). Then `failed` if it crashes again within a window. |
-| Gateway replica restart | Rebuild state from Kubernetes (replica counts) and control-plane config. Assume `idle_wait` if the backend is up and activity is unknown; do not immediately stop. |
-| Split brain (two gateway replicas) | v1 runs a single replica (`Recreate`). Horizontal scale needs a lock in a later revision. |
+| Gateway process restart | Rebuild state from Docker (running containers) and control-plane config. Assume `idle_wait` if the backend is up and activity is unknown; do not immediately stop. |
+| Two gateway processes | v1 runs one. A second process would steal ports. |
+
+## Cost comparison
+
+The gateway shares the G host. It does not add an AWS line. Buying an NLB so the gateway could live off-box would add ~$20/month and was rejected in [ADR-0006](../ADRs/ADR-0006-pack-on-public-ec2.md). Idle-stop does not reduce the bill.
 
 ## Out of scope
 
 - TLS termination for game protocols.
 - Deep packet inspection beyond adapter classification.
 - Replacing the control plane UI.
-- Docker socket access.
+- Exposing the Docker socket on the Elastic IP.
+- A second gateway replica.

@@ -2,31 +2,25 @@
 
 ## Purpose
 
-How the system is deployed on AWS, what it costs when asleep, and how worlds shut down without losing saves. Product behavior is in the other specs. Decisions: [ADR-0002](../ADRs/ADR-0002-reject-wings-use-eks-fargate.md), [ADR-0004](../ADRs/ADR-0004-persistence-and-networking.md).
+How the system is deployed on AWS, what it costs when asleep, and how worlds shut down without losing saves. Product behavior is in the other specs. Decision: [ADR-0006](../ADRs/ADR-0006-pack-on-public-ec2.md).
 
 ## Topology
 
-- One EKS cluster. Fargate profiles for the panel namespace, the gateway namespace (or the same namespace), and the worlds namespace.
-- Private subnets only for pods. Public subnets hold the ALB, NLB, and NAT.
-- AWS Load Balancer Controller creates the ALB and NLB with IP target types.
-- One EFS file system. Per-world access points. Static PVs.
-- DNS: `games.bradfordly.com` → ALB. Minecraft world hostnames → NLB. UDP allocations use the NLB hostname plus a port.
-
-v1 may share one namespace if RBAC stays tight. Split namespaces if worlds should not read panel secrets.
+- One public EC2 instance (`t3.medium` for Minecraft v1) with an Elastic IP.
+- Docker Engine on the host. Panel, Caddy, gateway, and game containers share that daemon (panel/gateway may instead be systemd units).
+- World saves are bind mounts on EBS. No EFS, no EKS, no ECS Fargate, no NAT, no ALB, no NLB.
+- DNS: `games.bradfordly.com` and `*.games.bradfordly.com` A / ALIAS to the Elastic IP. UDP allocations use the same IP plus a host port.
+- Admin access is SSM Session Manager. Do not open SSH to the world.
 
 ## Always-on versus scale-to-zero
 
 Always on (billed whenever the product exists):
 
-- EKS control plane
-- Control-plane Deployment (small)
-- Edge-gateway Deployment (small, single replica)
-- NAT gateway, ALB, NLB
-- EFS (storage + a little throughput)
+- The EC2 instance, EBS volume, and Elastic IP
 
-Scale to zero:
+Scale to zero (frees RAM, does **not** lower the AWS bill):
 
-- Each game world Fargate pod
+- Each game world container
 
 ## Cost model
 
@@ -75,17 +69,17 @@ Panel and gateway are always on in every serverless alternative. Game rows apply
 
 ### Alternatives measured
 
-Each alternative is the same product idea (panel + player listener + one or more worlds) on a different substrate. The v1 decision remains EKS Fargate ([ADR-0002](../ADRs/ADR-0002-reject-wings-use-eks-fargate.md)); this table is so the fee is visible.
+Each alternative is the same product idea (panel + player listener + one or more worlds) on a different substrate. **v1 is G** ([ADR-0006](../ADRs/ADR-0006-pack-on-public-ec2.md)). The other rows stay so the rejected fees stay visible.
 
 | ID | Alternative | What stays billed when worlds sleep | What is dropped vs EKS Fargate |
 | --- | --- | --- | --- |
-| A | **EKS Fargate, 1-AZ NAT** (chosen v1, cost-min AZ count) | Cluster, panel, gateway, NAT, ALB, NLB, EFS | — |
+| A | **EKS Fargate, 1-AZ NAT** | Cluster, panel, gateway, NAT, ALB, NLB, EFS | — |
 | B | **EKS Fargate, 2-AZ NAT** | A plus a second NAT | Nothing; higher HA |
 | C | **ECS Fargate, private + NAT** | Same as A minus the EKS cluster | $73 cluster |
 | D | **ECS Fargate, public subnets** | Panel, gateway, ALB, NLB, EFS | Cluster and NAT. EKS Fargate cannot do this (no public-subnet pods). |
 | E | **EKS + one public EC2 node** | Cluster + node. Panel and gateway run on the node. Worlds are Docker/K8s on the same box. | Fargate task fees, NAT, optional LBs |
 | F | **Public EC2 + Pelican/Pterodactyl** | One VM, EBS, one IPv4. Games stay up unless you add extra idle tooling. | Cluster, Fargate, NAT, ALB, NLB, EFS |
-| G | **Public EC2 + custom gateway** | One VM. Containers stop when idle; the gateway process stays on the VM. | Same as F, but worlds can sleep *inside* the still-paid VM |
+| G | **Public EC2 + custom gateway** (chosen v1, `t3.medium`) | One VM. Containers stop when idle; the gateway process stays on the VM. | Same as F, but worlds can sleep *inside* the still-paid VM |
 
 Shared assumptions for A–D: quiet gateway (0.25 / 0.5), 20 GB EFS, 1 ALB (2 IPv4), 1 NLB (1 IPv4), light LCU $4, NAT data 10 GB ($0.45) when a NAT exists. A/C use one NAT + its IPv4.
 
@@ -132,6 +126,7 @@ A totals use the 1-AZ NAT baseline ($182). Add **$36** to any A column for alter
 
 ### How to read this
 
+- **G `t3.medium` is the chosen v1 host (~$38).** Idle does not lower that number. The G `t3.xlarge` column below is the old packed-host row (~$131), not the chosen size.
 - **EKS Fargate (A) is the expensive serverless option.** The cluster ($73) plus NAT ($33+) dominate. Scale-to-zero only saves the *game* Fargate row. A sleeping Minecraft world on A still costs ~$182/month.
 - **ECS Fargate without NAT (D) is the cheap serverless option.** Same wake/idle story, about **$110/month less** than A when worlds sleep, because there is no cluster fee and EKS cannot put Fargate pods in public subnets. This is the cost-cut in ADR-0002.
 - **ECS Fargate + NAT (C)** is the middle: keep private pods, drop only the cluster fee (**−$73** vs A).
@@ -183,7 +178,7 @@ D is not the cheapest thing we measured in every slice. A packed public `t3.larg
 
 C is the safer ECS option: same rewrite as D, keep private tasks, pay $33 for NAT. Pick C if the public-IP blast radius is unacceptable and $119 at 40 h is fine. Pick G if one machine and a static IP are enough and you do not need per-world Fargate. Pick D if $70–85/month for isolated, sleeping worlds is the goal and you will treat security groups as part of the product.
 
-Choosing D is a change to ADR-0002, not a tweak to A. Do not implement D while that ADR still says EKS Fargate.
+D and D-min were rejected when isolation was dropped. Do not implement them while [ADR-0006](../ADRs/ADR-0006-pack-on-public-ec2.md) says G.
 
 ### Choices that move the bill
 
@@ -203,77 +198,77 @@ The panel must show hours online in the last day so a forgotten Palworld or Valh
 
 ### Cost envelope (short)
 
-| Item | When | Monthly (alternative A) |
+| Item | When | Monthly |
 | --- | --- | --- |
-| Platform, worlds asleep | Always | ~$182 |
-| Each Minecraft hour | Playing | $0.05 |
-| Each Valheim hour | Playing | $0.10 |
-| Each Palworld hour | Playing | $0.12 |
-| Cheapest measured serverless platform | D, worlds asleep | ~$72 |
-| Cheapest measured always-on packed host | F/G t3.xlarge | ~$131 |
+| **G `t3.medium` (chosen)** | Always | **~$38** |
+| G with weekly EBS snapshots | Always | ~$41 |
+| D-min ECS (rejected) | Worlds asleep | ~$53 |
+| A EKS Fargate (rejected) | Worlds asleep | ~$182 |
+| Resize to `t3.large` (before Valheim/Palworld) | Always | ~$68 |
+| Extra per Minecraft / Valheim / Palworld hour | On G | $0 (host already paid) |
 
 ## Capacity
 
-Fargate profiles must allow the CPU/memory in the game profiles ([game-adapters.md](game-adapters.md)). A world that asks for more than the profile allows will sit in `starting` until `start_timeout`.
+The instance type must fit the OS, panel, gateway, and **one** running world ([game-adapters.md](game-adapters.md)). A world that asks for more RAM than is free will sit in `starting` until `start_timeout`.
 
-Do not pack two worlds in one pod.
+v1 assumes one world running at a time. Do not start a second world on `t3.medium`.
 
 ## Graceful stop
 
 1. Gateway enters `stopping` and calls the adapter `GracefulStop`.
-2. Kubernetes sends SIGTERM (or the adapter's signal) and honors `terminationGracePeriodSeconds` ≥ `stop_timeout`.
-3. The image flushes the world to EFS.
-4. Only then are replicas set to 0.
+2. Docker sends SIGTERM (or the adapter's signal) and honors `stop_timeout`.
+3. The image flushes the world to the EBS bind mount.
+4. Only then is the container left stopped.
 5. If the process is still running at `stop_timeout`, it is killed. The panel shows that the last stop was forced.
 
-Never set a world's `terminationGracePeriodSeconds` to a few seconds. Minecraft and Valheim need time to write.
+Never set a world's Docker stop timeout to a few seconds. Minecraft and Valheim need time to write.
 
 ## Backups (v1 minimum)
 
-- EFS replication or AWS Backup on the file system.
-- One on-demand backup before a world PVC is deleted.
-- Restore is "create a new world pointed at a restored access point," not a button in v1.
+- AWS Backup or scheduled EBS snapshots on the data volume (or the root volume if there is no data volume).
+- One on-demand snapshot before a world's save directory is deleted.
+- Restore is "create a new world pointed at a restored directory," not a button in v1.
 
 Do not copy worlds through the panel API.
 
 ## Secrets
 
-- OIDC client secret: Kubernetes Secret, not in world env.
-- Game passwords and RCON: Kubernetes Secrets mounted into the world pod.
-- Palworld REST basic auth: cluster-internal Secret; not an NLB listener.
-- Allowlist: ConfigMap is fine (emails are not credentials).
+- OIDC client secret: SSM Parameter Store SecureString, not in world env.
+- Game passwords and RCON: files or env on the host, bound into the container. Do not publish RCON on the security group.
+- Palworld REST basic auth: localhost / Docker network only.
+- Allowlist: SSM or a file on disk (emails are not credentials).
 
 ## Health checks
 
-- Panel: HTTP `/healthz` on the ALB target group.
-- Gateway: HTTP `/healthz` on the NLB TCP health check port (not 25565 if that would look like a Minecraft client).
-- Game pods: Kubernetes probes only. NLB must not target game pods.
-- UDP game health is the adapter ready check after the pod is up.
+- Panel: HTTP `/healthz` behind Caddy.
+- Gateway: HTTP `/healthz` on a host-only or localhost admin port (not 25565).
+- Game containers: Docker health or the adapter ready check. Do not expose that check on the Elastic IP.
+- UDP game health is the adapter ready check after the container is up.
 
 ## DNS and certificates
 
-- ACM certificate for `games.bradfordly.com` and `*.games.bradfordly.com` on the ALB.
-- Game TCP/UDP on the NLB is not TLS (game protocols).
-- Minecraft SRV records are optional. If used, they must still land on the NLB:25565.
+- Caddy + Let's Encrypt for `games.bradfordly.com`. Wildcard Minecraft names do not need HTTPS (game protocol is not TLS).
+- Game TCP/UDP on the Elastic IP is not TLS.
+- Minecraft SRV records are optional. If used, they must still land on the Elastic IP:25565.
 
 ## Deploy
 
-Implementation issues choose Terraform versus CDK versus raw manifests. Requirements:
+Implementation issues choose Terraform versus a small cloud-init. Requirements:
 
-- Fargate-only node compute for these workloads.
-- Load Balancer Controller installed (cannot run as a Fargate DaemonSet; it runs as a Deployment).
-- EFS CSI available to Fargate (static PVs).
-- Images pulled from a registry Fargate can reach.
+- One public instance, Elastic IP, security group, IAM instance profile (SSM).
+- Docker Engine and Caddy on the host.
+- Images pulled from a registry the instance can reach (Docker Hub or ECR).
+- Do not apply the EKS stack in `infra/`.
 
 ## Operations the panel must not hide
 
 - Last wake cause and time
 - Last forced stop
-- Current replica count versus gateway state
+- Current container running state versus gateway state
 - Hours online in the last day (cost signal)
 
 ## Open operational questions
 
-- Single AZ versus multi-AZ NLB (cost versus a world that must stay on one EFS mount target). A second NAT AZ is +$36/month in the cost model.
-- Whether the first cluster is in `us-east-1` or closer to the usual player set. The cost model is us-east-1; other regions are usually a few percent higher.
+- Whether the instance is in `us-east-1` or closer to the usual player set. The cost model is us-east-1; other regions are usually a few percent higher.
 - Who receives alerts when a world is `failed` (email, Slack, GitHub issue: later).
+- When to resize from `t3.medium` to `t3.large` (before Valheim/Palworld, or when a modpack does not fit).
