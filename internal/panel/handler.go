@@ -16,6 +16,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /logout", s.handleLogout)
 	mux.HandleFunc("GET /denied", s.handleDenied)
 	mux.HandleFunc("GET /{$}", s.handleHome)
+	mux.HandleFunc("GET /worlds/{id}", s.handleWorldDetail)
+	mux.HandleFunc("GET /api/worlds", s.handleListWorlds)
+	mux.HandleFunc("POST /api/worlds", s.handleCreateWorld)
+	mux.HandleFunc("GET /api/worlds/{id}", s.handleGetWorld)
+	mux.HandleFunc("PATCH /api/worlds/{id}", s.handlePatchWorld)
 	return s.requireSession(mux)
 }
 
@@ -122,9 +127,4 @@ func (s *Server) handleDenied(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusForbidden)
 	_, _ = io.WriteString(w, "<!DOCTYPE html><html><body>authenticated but not allowlisted</body></html>")
-}
-
-func (s *Server) handleHome(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = io.WriteString(w, "<!DOCTYPE html><html><body>signed in</body></html>")
 }

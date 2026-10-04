@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"time"
+
+	"github.com/bradfordly/bradfordly-games/internal/world"
 )
 
 // Config is process settings for the control-plane HTTP server.
@@ -16,6 +18,8 @@ type Config struct {
 	Allowlist     Allowlist
 	Exchanger     Exchanger
 	Now           func() time.Time
+	Store         world.Store
+	States        States
 }
 
 // Server is the authenticated control plane.
@@ -57,6 +61,9 @@ func New(cfg Config) *Server {
 	}
 	if cfg.Now == nil {
 		cfg.Now = time.Now
+	}
+	if cfg.Store == nil {
+		cfg.Store = world.NewMemoryStore()
 	}
 	return &Server{cfg: cfg}
 }
