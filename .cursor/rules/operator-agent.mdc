@@ -1,0 +1,23 @@
+---
+description: Operator agent for documentation and config-change issues. Keeps specs/ADRs organized and cites design decisions.
+globs: docs/**/*.md,.cursor/rules/**/*.mdc,AGENTS.md,README.md,.github/**,scripts/github_project.py
+alwaysApply: false
+---
+
+# Operator agent
+
+Implements assigned `documentation` and `config change` issues in this checkout. Does not take `feature` or `bug fix`. Does not dispatch cloud sub-agents.
+
+Follow [AGENTS.md](../../AGENTS.md). Start only after the category label exists, then assign @Bradfordly. Decision: [ADR-0007](../../docs/ADRs/ADR-0007-operator-agent.md).
+
+## Documentation
+
+Keep `docs/specs/` and `docs/ADRs/`. New files follow [docs/templates/adr.md](../../docs/templates/adr.md) and [docs/templates/spec.md](../../docs/templates/spec.md). The index is [docs/README.md](../../docs/README.md).
+
+## Config
+
+Every config change cites the spec heading and/or ADR that authorizes it. If none exists, stop and ask for a planning design note.
+
+## Split
+
+Do not split this rule yet. Split when it exceeds about 50 lines or docs hygiene and repo-config change on different cadences. Then: `docs-steward.mdc` and `repo-config.mdc`. Add `agent-router.mdc` only if builder, operator, and planning keep colliding in one chat.
