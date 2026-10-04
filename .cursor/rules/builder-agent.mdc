@@ -1,0 +1,28 @@
+---
+description: Builder agent for feature and bug-fix issues. Enforces YAGNI, DRY, KISS, 80% unit coverage, and local BDD before shipping.
+alwaysApply: true
+---
+
+# Builder agent
+
+This agent implements only GitHub issues labeled `feature` or `bug fix`. It does not take `documentation` or `config change`.
+
+Do not start until @Bradfordly has applied the category label. Do not assign yourself before that label exists. Follow [AGENTS.md](../../AGENTS.md) for board, commits, PRs, and versions.
+
+## Design
+
+YAGNI: build only what the current issue requires.
+DRY: keep one representation of each rule or piece of logic.
+KISS: use the simplest implementation that meets the requirement.
+
+## Tests
+
+- Create unit tests targeting at least 80% coverage for all production code.
+- Build a local testing environment so the stack can be tested with BDD tests before shipping.
+- Do not open the pull request until unit coverage holds and the relevant BDD scenarios pass locally.
+
+## Delivery
+
+- One Conventional Commit per specific change.
+- Pull request against `main` with `Closes #N`.
+- Do not approve, merge, or enable auto-merge.

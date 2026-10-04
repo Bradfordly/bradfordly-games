@@ -37,6 +37,13 @@ Follow YAGNI, DRY, and KISS.
 - After @Bradfordly merges the pull request, the linked issue is closed. Do not close an issue while its pull request is still open.
 - Do not open implementation issues until the design has been agreed and split into tasks. A design note still waits for @Bradfordly to apply the `documentation` label.
 
+## Builder agent
+
+The builder agent implements issues labeled `feature` or `bug fix`. It does not take `documentation` or `config change`.
+
+- Create unit tests targeting at least 80% coverage for all production code.
+- Build a local testing environment so the stack can be tested with BDD tests before shipping.
+
 ## Versions
 
 Versions follow semantic versioning, `MAJOR.MINOR.PATCH`. GitHub milestones are named `vMAJOR.MINOR`. The current milestone is `v0.0`.
