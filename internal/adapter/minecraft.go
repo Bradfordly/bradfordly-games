@@ -2,11 +2,18 @@ package adapter
 
 import "net"
 
-type minecraftJava struct{}
+type minecraftJava struct {
+	plays *PlayCounts
+}
 
-// MinecraftJava returns the v1 Minecraft Java adapter stub.
+// MinecraftJava returns the v1 Minecraft Java adapter.
 func MinecraftJava() Adapter {
-	return minecraftJava{}
+	return NewMinecraftJava(nil)
+}
+
+// NewMinecraftJava returns the Minecraft Java adapter using plays for Activity.
+func NewMinecraftJava(plays *PlayCounts) Adapter {
+	return minecraftJava{plays: plays}
 }
 
 func (minecraftJava) Game() string { return GameMinecraftJava }
@@ -34,6 +41,11 @@ func (minecraftJava) ServeStatus(net.Conn, *World, WorldState) error { return ni
 
 func (minecraftJava) Occupy(*World, WorldState) OccupyAction { return OccupyKick }
 
-func (minecraftJava) Activity(*World) (int, bool) { return 0, false }
+func (m minecraftJava) Activity(world *World) (int, bool) {
+	if world == nil || m.plays == nil {
+		return 0, false
+	}
+	return m.plays.Get(world.ID)
+}
 
 func (minecraftJava) GracefulStop(*World) error { return nil }

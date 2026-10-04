@@ -3,6 +3,7 @@ package adapter
 import (
 	"errors"
 	"net"
+	"time"
 )
 
 // ErrNotImplemented is returned when a follow-on UDP adapter is selected.
@@ -48,9 +49,12 @@ type Allocation struct {
 }
 
 type World struct {
-	ID         string
-	Game       string
-	Allocation Allocation
+	ID          string
+	Game        string
+	Allocation  Allocation
+	Container   string
+	IdleTimeout time.Duration
+	StopTimeout time.Duration
 }
 
 type Event struct {
