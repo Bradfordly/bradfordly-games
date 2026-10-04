@@ -160,8 +160,43 @@ class GatewayNlb(unittest.TestCase):
         self.assertIn("8080", variables)
 
 
+class PanelGatewayRbac(unittest.TestCase):
+    def test_roles_are_namespaced_in_games_worlds(self) -> None:
+        rbac = (INFRA / "rbac.tf").read_text()
+        self.assertIn('resource "kubernetes_service_account" "panel"', rbac)
+        self.assertIn('resource "kubernetes_service_account" "gateway"', rbac)
+        self.assertIn('resource "kubernetes_role" "panel"', rbac)
+        self.assertIn('resource "kubernetes_role" "gateway"', rbac)
+        self.assertIn('games-worlds', rbac)
+        self.assertIn("games-system", rbac)
+        self.assertNotIn('name      = "cluster-admin"', rbac)
+        self.assertNotIn("kubernetes_cluster_role", rbac)
+        self.assertNotIn("ClusterRole", rbac)
+
+    def test_panel_manages_world_objects(self) -> None:
+        panel = (INFRA / "rbac.tf").read_text().split('resource "kubernetes_role" "gateway"')[0]
+        self.assertIn("games.bradfordly.com", panel)
+        self.assertIn("worlds", panel)
+        self.assertIn("services", panel)
+        self.assertIn("statefulsets", panel)
+        self.assertIn("persistentvolumeclaims", panel)
+        self.assertIn("create", panel)
+        self.assertIn("delete", panel)
+
+    def test_gateway_can_watch_and_patch_replicas_only(self) -> None:
+        gateway = (INFRA / "rbac.tf").read_text().split('resource "kubernetes_role" "gateway"')[1]
+        self.assertIn("get", gateway)
+        self.assertIn("list", gateway)
+        self.assertIn("watch", gateway)
+        self.assertIn("patch", gateway)
+        self.assertIn("statefulsets/scale", gateway)
+        self.assertNotIn("create", gateway)
+        self.assertNotIn("delete", gateway)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 
 
