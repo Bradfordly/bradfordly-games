@@ -1,0 +1,7 @@
+{
+	auto_https disable_redirects
+}
+
+games.bradfordly.com {
+	reverse_proxy panel:8080
+}

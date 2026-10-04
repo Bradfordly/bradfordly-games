@@ -1,0 +1,30 @@
+# Panel and gateway run on the host Docker daemon, not as systemd units.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - /opt/bradfordly-games/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /mnt/games-data/caddy/data:/data
+      - /mnt/games-data/caddy/config:/config
+
+  panel:
+    image: bradfordly-games-panel:local
+    restart: unless-stopped
+    volumes:
+      - /mnt/games-data/panel:/var/lib/bradfordly-games/panel
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "8080"
+
+  gateway:
+    image: bradfordly-games-gateway:local
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "25565:25565"
+    expose:
+      - "8080"
