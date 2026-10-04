@@ -28,6 +28,24 @@ variable "cluster_endpoint_public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "panel_hostname" {
+  type        = string
+  description = "Public hostname for the panel ALB and ACM certificate."
+  default     = "games.bradfordly.com"
+}
+
+variable "route53_zone_id" {
+  type        = string
+  description = "Optional Route 53 zone for ACM DNS validation. Empty leaves validation records as outputs."
+  default     = ""
+}
+
+variable "lbc_image" {
+  type        = string
+  description = "AWS Load Balancer Controller image. Runs as a Deployment on Fargate, not a DaemonSet."
+  default     = "public.ecr.aws/eks/aws-load-balancer-controller:v3.5.0"
+}
+
 variable "world_ids" {
   type        = list(string)
   description = "World IDs that get an EFS access point at /worlds/<id>. Leave empty and create access points by hand for the first worlds."

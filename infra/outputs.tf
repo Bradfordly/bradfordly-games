@@ -38,6 +38,27 @@ output "public_subnet_ids" {
   value       = [for subnet in aws_subnet.public : subnet.id]
 }
 
+output "panel_hostname" {
+  description = "Panel hostname served by the ALB."
+  value       = var.panel_hostname
+}
+
+output "panel_certificate_arn" {
+  description = "ACM certificate attached to the panel ALB."
+  value       = aws_acm_certificate.panel.arn
+}
+
+output "panel_certificate_validation" {
+  description = "DNS records required to validate the panel certificate."
+  value = {
+    for dvo in aws_acm_certificate.panel.domain_validation_options : dvo.domain_name => {
+      name  = dvo.resource_record_name
+      type  = dvo.resource_record_type
+      value = dvo.resource_record_value
+    }
+  }
+}
+
 output "efs_file_system_id" {
   description = "EFS file system for world saves."
   value       = aws_efs_file_system.worlds.id
