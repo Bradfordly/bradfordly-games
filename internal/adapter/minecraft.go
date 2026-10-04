@@ -1,36 +1,79 @@
 package adapter
 
-import "net"
+import (
+	"bytes"
+	"net"
+
+	"github.com/bradfordly/bradfordly-games/internal/mcproto"
+)
 
 type minecraftJava struct{}
 
-// MinecraftJava returns the v1 Minecraft Java adapter stub.
+// MinecraftJava returns the v1 Minecraft Java adapter.
 func MinecraftJava() Adapter {
 	return minecraftJava{}
 }
 
 func (minecraftJava) Game() string { return GameMinecraftJava }
 
-func (minecraftJava) Match(worlds []*World, alloc Allocation, _ []byte) *World {
+func (minecraftJava) Match(worlds []*World, alloc Allocation, first []byte) *World {
+	host := mcproto.NormalizeHost(alloc.Host)
+	if host == "" && len(first) > 0 {
+		if hs, err := mcproto.ReadHandshake(bytes.NewReader(first)); err == nil {
+			host = hs.ServerAddress
+		}
+	}
 	for _, w := range worlds {
 		if w == nil || w.Game != GameMinecraftJava {
 			continue
 		}
-		if alloc.Host != "" && w.Allocation.Host == alloc.Host {
+		if host != "" && mcproto.NormalizeHost(w.Allocation.Host) == host {
 			return w
 		}
 	}
 	return nil
 }
 
-// Classify is a stub. Handshake parsing lands with the status listener.
-func (minecraftJava) Classify(_ []byte) Intent { return IntentOther }
+func (minecraftJava) Classify(first []byte) Intent {
+	hs, err := mcproto.ReadHandshake(bytes.NewReader(first))
+	if err != nil {
+		return IntentOther
+	}
+	return IntentFromNextState(hs.NextState)
+}
+
+func IntentFromNextState(next int) Intent {
+	switch next {
+	case mcproto.NextStateStatus:
+		return IntentStatus
+	case mcproto.NextStateLogin:
+		return IntentLogin
+	default:
+		return IntentOther
+	}
+}
 
 func (minecraftJava) ShouldWake(e Event) bool {
 	return e.Intent == IntentLogin
 }
 
-func (minecraftJava) ServeStatus(net.Conn, *World, WorldState) error { return nil }
+func (minecraftJava) ServeStatus(conn net.Conn, world *World, state WorldState, protocol int) error {
+	motd := world.AsleepMOTD
+	if state == StateStarting || state == StateStopping {
+		motd = world.StartingMOTD
+	}
+	return mcproto.WriteStatus(conn, motd, protocol)
+}
+
+func MOTD(world *World, state WorldState) string {
+	if world == nil {
+		return ""
+	}
+	if state == StateStarting || state == StateStopping {
+		return world.StartingMOTD
+	}
+	return world.AsleepMOTD
+}
 
 func (minecraftJava) Occupy(*World, WorldState) OccupyAction { return OccupyKick }
 

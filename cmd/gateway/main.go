@@ -3,21 +3,21 @@ package main
 import (
 	"flag"
 	"log"
-	"net/http"
 
-	"github.com/bradfordly/bradfordly-games/internal/adapter"
+	"github.com/bradfordly/bradfordly-games/internal/gateway"
 )
 
 func main() {
-	addr := flag.String("admin-addr", ":8080", "admin HTTP listen address")
+	adminAddr := flag.String("admin-addr", ":8080", "admin HTTP listen address")
+	gameAddr := flag.String("game-addr", ":25565", "Minecraft Java listen address")
 	flag.Parse()
 
-	adapters := adapter.NewRegistry()
-	log.Printf("gateway adapters: %s, %s, %s", adapter.GameMinecraftJava, adapter.GameValheim, adapter.GamePalworld)
-	_ = adapters
-
-	log.Printf("gateway admin listening on %s", *addr)
-	if err := http.ListenAndServe(*addr, adminMux()); err != nil {
+	srv := gateway.New(*adminAddr, *gameAddr)
+	admin, game, err := srv.Start()
+	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("gateway admin listening on %s", admin)
+	log.Printf("gateway minecraft listening on %s", game)
+	select {}
 }
