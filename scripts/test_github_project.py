@@ -104,6 +104,27 @@ class Rules(unittest.TestCase):
         self.assertIn("DRY: keep one representation of each rule or piece of logic.", rules)
         self.assertIn("KISS: use the simplest implementation that meets the requirement.", rules)
 
+    def test_builder_agent_takes_feature_and_bug_fix(self) -> None:
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn(
+            "The builder agent implements issues labeled `feature` or `bug fix`.",
+            rules,
+        )
+        self.assertIn("It does not take `documentation` or `config change`.", rules)
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn("The builder agent takes `feature` and `bug fix`.", readme)
+
+    def test_builder_requires_coverage_and_local_bdd(self) -> None:
+        rules = (ROOT / "AGENTS.md").read_text()
+        self.assertIn(
+            "Create unit tests targeting at least 80% coverage for all production code.",
+            rules,
+        )
+        self.assertIn(
+            "Build a local testing environment so the stack can be tested with BDD tests before shipping.",
+            rules,
+        )
+
 
 class BoardRules(unittest.TestCase):
     def test_status_follows_assignment_and_pull_requests(self) -> None:
