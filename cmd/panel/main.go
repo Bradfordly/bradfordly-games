@@ -21,8 +21,12 @@ func main() {
 		return
 	}
 
-	log.Printf("panel %s listening on %s", version.String, *addr)
-	if err := http.ListenAndServe(*addr, panel.Handler()); err != nil {
+	cfg, err := panel.FromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("panel %s listening on %s (issuer %s)", version.String, *addr, panel.GitHubIssuer)
+	if err := http.ListenAndServe(*addr, panel.New(cfg).Handler()); err != nil {
 		log.Fatal(err)
 	}
 }
