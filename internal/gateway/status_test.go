@@ -107,18 +107,3 @@ func TestStatusStartingMOTDDoesNotScale(t *testing.T) {
 		t.Fatal("status ping must not scale replicas")
 	}
 }
-
-func TestLoginDoesNotScaleYet(t *testing.T) {
-	world := &adapter.World{
-		ID:         "survival",
-		Game:       adapter.GameMinecraftJava,
-		Allocation: adapter.Allocation{Host: "survival.games.bradfordly.com"},
-		State:      adapter.StateAsleep,
-	}
-	srv, addr := startTestServer(t, world)
-	_ = pingStatus(t, addr, "survival.games.bradfordly.com", mcproto.NextStateLogin)
-	time.Sleep(50 * time.Millisecond)
-	if srv.Scaler.(*RecordingScaler).Count() != 0 {
-		t.Fatal("login must not scale until #28")
-	}
-}

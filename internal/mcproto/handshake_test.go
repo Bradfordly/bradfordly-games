@@ -47,6 +47,38 @@ func TestNormalizeHost(t *testing.T) {
 	}
 }
 
+func TestLoginNameFixture(t *testing.T) {
+	raw := "1000f605096c6f63616c686f737463dd02\n06000469747a67\n"
+	content, err := hex.DecodeString(strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := bytes.NewReader(content)
+	hs, err := ReadHandshake(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hs.NextState != NextStateLogin {
+		t.Fatalf("next = %d", hs.NextState)
+	}
+	frame, err := ReadFrameBytes(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, err := LoginName(frame)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != "itzg" {
+		t.Fatalf("name = %q", name)
+	}
+}
+
 func TestRoundTripHandshake(t *testing.T) {
 	var buf bytes.Buffer
 	in := Handshake{ProtocolVersion: 767, ServerAddress: "survival.example", ServerPort: 25565, NextState: NextStateLogin}

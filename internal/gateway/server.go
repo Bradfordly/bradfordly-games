@@ -1,9 +1,7 @@
 package gateway
 
 import (
-	"bufio"
 	"encoding/json"
-	"log"
 	"net"
 	"net/http"
 	"time"
@@ -13,23 +11,26 @@ import (
 )
 
 type Server struct {
-	AdminAddr string
-	GameAddr  string
-	Adapters  *adapter.Registry
-	Catalog   *Catalog
-	Scaler    Scaler
+	AdminAddr    string
+	GameAddr     string
+	Adapters     *adapter.Registry
+	Catalog      *Catalog
+	Scaler       Scaler
+	WakeInterval time.Duration
 
+	wakes   *wakeGate
 	adminLn net.Listener
 	gameLn  net.Listener
 }
 
 func New(adminAddr, gameAddr string) *Server {
 	return &Server{
-		AdminAddr: adminAddr,
-		GameAddr:  gameAddr,
-		Adapters:  adapter.NewRegistry(),
-		Catalog:   NewCatalog(),
-		Scaler:    &RecordingScaler{},
+		AdminAddr:    adminAddr,
+		GameAddr:     gameAddr,
+		Adapters:     adapter.NewRegistry(),
+		Catalog:      NewCatalog(),
+		Scaler:       &RecordingScaler{},
+		WakeInterval: defaultWakeInterval,
 	}
 }
 
@@ -64,6 +65,9 @@ func (s *Server) handleWorlds(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) Start() (adminAddr, gameAddr string, err error) {
+	if s.wakes == nil {
+		s.wakes = newWakeGate(s.WakeInterval)
+	}
 	s.adminLn, err = net.Listen("tcp", s.AdminAddr)
 	if err != nil {
 		return "", "", err
@@ -103,8 +107,7 @@ func (s *Server) handleConn(conn net.Conn) {
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
 
-	br := bufio.NewReader(conn)
-	hs, err := mcproto.ReadHandshake(br)
+	hs, err := mcproto.ReadHandshake(conn)
 	if err != nil {
 		return
 	}
@@ -124,8 +127,12 @@ func (s *Server) handleConn(conn net.Conn) {
 		return
 	}
 
-	if mc.ShouldWake(adapter.Event{Intent: intent, World: world}) {
-		// Login wake is #28. Status must never reach here.
-		log.Printf("ignored wake for %s (status listener only)", world.ID)
+	loginFrame, err := mcproto.ReadFrameBytes(conn)
+	if err != nil {
+		return
 	}
+	if !mc.ShouldWake(adapter.Event{Intent: intent, World: world}) {
+		return
+	}
+	s.handleLogin(conn, world, hs, loginFrame)
 }
