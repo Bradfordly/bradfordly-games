@@ -6,9 +6,9 @@ How the system is deployed on AWS, what it costs when asleep, and how worlds shu
 
 ## Topology
 
-- One public EC2 instance (`t3.medium` for Minecraft v1) with an Elastic IP.
-- Docker Engine on the host. Panel, Caddy, gateway, and game containers share that daemon (panel/gateway may instead be systemd units).
-- World saves are bind mounts on EBS. No EFS, no EKS, no ECS Fargate, no NAT, no ALB, no NLB.
+- One public EC2 instance (`t3.medium` for Minecraft v1) with an Elastic IP, a small root volume, and a **50 GB gp3 data volume**.
+- Docker Engine on the host. Panel, gateway, and game worlds are containers on that daemon. Caddy may be a host package or a container publishing 443.
+- World saves and panel SQLite live on the data volume. No EFS, no EKS, no ECS Fargate, no NAT, no ALB, no NLB.
 - DNS: `games.bradfordly.com` and `*.games.bradfordly.com` A / ALIAS to the Elastic IP. UDP allocations use the same IP plus a host port.
 - Admin access is SSM Session Manager. Do not open SSH to the world.
 
@@ -225,7 +225,7 @@ Never set a world's Docker stop timeout to a few seconds. Minecraft and Valheim 
 
 ## Backups (v1 minimum)
 
-- AWS Backup or scheduled EBS snapshots on the data volume (or the root volume if there is no data volume).
+- AWS Backup or scheduled EBS snapshots on the 50 GB data volume.
 - One on-demand snapshot before a world's save directory is deleted.
 - Restore is "create a new world pointed at a restored directory," not a button in v1.
 
@@ -236,7 +236,7 @@ Do not copy worlds through the panel API.
 - OIDC client secret: SSM Parameter Store SecureString, not in world env.
 - Game passwords and RCON: files or env on the host, bound into the container. Do not publish RCON on the security group.
 - Palworld REST basic auth: localhost / Docker network only.
-- Allowlist: SSM or a file on disk (emails are not credentials).
+- Allowlist: SSM Parameter Store (emails are not credentials).
 
 ## Health checks
 

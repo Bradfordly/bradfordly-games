@@ -26,9 +26,9 @@ This ADR supersedes the EKS/Fargate runtime in ADR-0002 and the EFS/ALB/NLB/Clus
 
 1. **Run v1 on one public EC2 instance** with an Elastic IP. Panel, gateway, and game containers share that host. Do not use EKS, ECS Fargate, ALB, NLB, NAT, or EFS for this product.
 2. **Do not deploy Pelican, Pterodactyl, or Wings.** Wings would own the Docker daemon and fight the gateway for start/stop. The panel stays a thin custom app. Buy [itzg/mc-router](https://github.com/itzg/mc-router) in Docker mode (the socket exists again) and [Caddy](https://caddyserver.com) for HTTPS.
-3. **v1 instance is `t3.medium`** (2 vCPU, 4 GiB) in `us-east-1`, Amazon Linux 2023, 50 GB gp3 root (or a small root plus a 50 GB data volume). Resize the type before shipping Valheim or Palworld; do not pay for `t3.large` until those adapters exist.
-4. **Worlds are Docker containers** on the host. The gateway `docker start` / `docker stop`s them. One world running at a time is the v1 assumption. Saves are bind mounts on EBS.
-5. **World records live on local disk** (SQLite or a JSON file). OIDC secret and allowlist live in SSM Parameter Store. No RDS, Aurora, DynamoDB, or Secrets Manager.
+3. **v1 instance is `t3.medium`** (2 vCPU, 4 GiB) in `us-east-1`, Amazon Linux 2023, a small root volume plus a **50 GB gp3 data volume** (saves, SQLite, snapshots). Resize the type before shipping Valheim or Palworld; do not pay for `t3.large` until those adapters exist.
+4. **Worlds, the panel, and the gateway are Docker containers** on the host. The gateway `docker start` / `docker stop`s worlds. One world running at a time is the v1 assumption. Saves are bind mounts on the data volume.
+5. **World records are SQLite on the data volume.** OIDC secret and allowlist live in SSM Parameter Store. First issuer is **GitHub**. No RDS, Aurora, DynamoDB, Secrets Manager, or JSON-file store.
 6. **Idle stop does not change the AWS bill.** Do not add instance-stop-on-idle in v1 (that would add a 1–2 minute EC2 cold start in front of game boot).
 
 ## Cost comparison
@@ -102,11 +102,4 @@ One box is a single point of failure. That is acceptable for an invite-only pane
 - Security group is the isolation we have: 443 and 25565 public; RCON and SSH closed (SSM Session Manager for admin). A published world port is on the host IP, not a per-task ENI.
 - `t3.medium` (4 GiB) fits vanilla Minecraft + panel + gateway. It does **not** fit Palworld (8 GiB profile) or a heavy modpack. Resize before those ship.
 - Stacked feature PRs that targeted Kubernetes never landed on `main` and should not be rebased onto G. New issues, new branches.
-
-## Open questions
-
-Resolve in implementation issues:
-
-- Root-only volume versus a separate data volume (snapshots are easier on a data volume).
-- Panel and gateway as host systemd units versus containers on the same Docker daemon.
-- SQLite versus a JSON file for world records.
+- Implementation issues #57–#60 locked the former open questions: separate data volume, panel and gateway as containers, SQLite, GitHub OIDC with the allowlist in SSM.
