@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{.Title}} · Bradfordly Games</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; max-width: 40rem; }
+  </style>
+</head>
+<body>
+  <h1>Denied</h1>
+  <p>You authenticated with GitHub{{if .User}} as {{.User.Email}}{{end}}, but you are not on the allowlist.</p>
+  <p><a href="/logout">Log out</a></p>
+</body>
+</html>

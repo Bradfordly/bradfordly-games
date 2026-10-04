@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{.Title}} · Bradfordly Games</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; max-width: 48rem; }
+    dt { font-weight: 600; margin-top: 0.6rem; }
+    .failed { color: #9b1c1c; font-weight: 600; }
+    .asleep { color: #1f4b2d; }
+    .actions { display: flex; gap: 0.6rem; margin-top: 1.2rem; }
+    button { padding: 0.4rem 0.8rem; }
+  </style>
+</head>
+<body>
+  <p><a href="/">World list</a> · <a href="/logout">Log out</a></p>
+  <h1>{{.World.Name}}</h1>
+  <dl>
+    <dt>Game</dt>
+    <dd>{{.World.Game}}</dd>
+    <dt>Allocation</dt>
+    <dd>{{.World.AllocationString}}</dd>
+    <dt>Gateway state</dt>
+    <dd class="{{if eq .World.State `failed`}}failed{{else if .World.AsleepHint}}asleep{{end}}">
+      {{.World.State}}{{if .World.AsleepHint}} — join the game to start{{end}}
+    </dd>
+    <dt>Last error</dt>
+    <dd>{{if .World.LastError}}{{.World.LastError}}{{else}}none{{end}}</dd>
+    <dt>Container</dt>
+    <dd>{{if .World.ContainerRunning}}running{{else}}stopped{{end}}</dd>
+    <dt>Players</dt>
+    <dd>{{players .World.Players}}</dd>
+    <dt>Idle timer</dt>
+    <dd>{{if .World.IdleTimer}}{{.World.IdleTimer}}{{else}}none{{end}}</dd>
+    <dt>Last wake cause</dt>
+    <dd>{{if .World.LastWakeCause}}{{.World.LastWakeCause}}{{else}}none{{end}}</dd>
+    <dt>Last wake time</dt>
+    <dd>{{stamp .World.LastWakeAt}}</dd>
+    <dt>Last forced stop</dt>
+    <dd>{{stamp .World.LastForcedStopAt}}</dd>
+    <dt>Hours online in the last day</dt>
+    <dd>{{hours .World.HoursOnlineLastDay}}</dd>
+  </dl>
+  <div class="actions">
+    <form method="post" action="/worlds/{{.World.ID}}/power">
+      <input type="hidden" name="action" value="start">
+      <button type="submit">Start</button>
+    </form>
+    <form method="post" action="/worlds/{{.World.ID}}/power" {{if .World.ConfirmStop}}data-confirm-online="true" onsubmit="return confirm('Players are online. Stop the world anyway?');"{{end}}>
+      <input type="hidden" name="action" value="stop">
+      <button type="submit">Stop</button>
+    </form>
+  </div>
+</body>
+</html>
