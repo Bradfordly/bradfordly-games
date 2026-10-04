@@ -1,0 +1,22 @@
+{
+  "worlds": [
+    {
+      "id": "survival",
+      "name": "Survival",
+      "game": "minecraft-java",
+      "allocation": {
+        "host": "survival.games.bradfordly.com",
+        "port": 25565,
+        "protocol": "tcp"
+      },
+      "backend": {
+        "container": "survival",
+        "address": "survival:25565"
+      },
+      "occupy_mode": "kick",
+      "asleep_motd": "World is asleep. Join to start.",
+      "starting_motd": "Server is starting, join again.",
+      "wake_whitelist": []
+    }
+  ]
+}
