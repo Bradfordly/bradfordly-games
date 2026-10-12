@@ -9,7 +9,8 @@ On-demand game server hosting on AWS, infrastructure defined with AWS CDK.
 - Board columns (the project's `Status` field): `Planning` → `In-progress` → `Review` → `Done`.
   - Move an issue to `In-progress` when work starts and to `Review` when its PR is opened. Closing or merging moves it to `Done`.
 - Every tracked issue gets exactly one type label: `feature`, `bug`, `documentation`, or `config change`.
-- One issue per branch/PR. Reference the issue in the PR body (`Closes #N`).
+- Only issues go on the project and only issues get labels and milestones. Never add PRs to the project or give them labels or milestones; the issue carries the status.
+- One issue per branch/PR. Reference the issue in the PR body (`Closes #N`). When the PR opens, move the issue to `Review`.
 
 ## Agents
 

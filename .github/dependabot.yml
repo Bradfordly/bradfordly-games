@@ -8,4 +8,5 @@ updates:
     groups:
       actions:
         patterns: ["*"]
-    labels: ["config change"]
+    # Only issues are labeled (see CLAUDE.md); [] also disables Dependabot's default labels.
+    labels: []
