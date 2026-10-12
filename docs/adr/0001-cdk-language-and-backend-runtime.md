@@ -1,6 +1,6 @@
 # 0001. CDK language and backend runtime
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-11
 
 ## Context
