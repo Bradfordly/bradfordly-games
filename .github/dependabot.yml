@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Keeps SHA-pinned actions current. Add the CDK language ecosystem (npm or pip) once chosen.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    labels: ["config change"]
