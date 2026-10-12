@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-12
+- Amended by: [0003](0003-control-plane-server-lifecycle-and-idle-shutdown.md#amends-adr-0002) (A1–A9: host agent signals, instance IAM, boot sequence, admin-reason file, idle power-off, `readyPattern`, lock, grants)
 
 ## Context
 
