@@ -1,0 +1,13 @@
+# Reviewed exceptions for osv-scanner. Each entry needs a reason and an expiry.
+
+[[IgnoredVulns]]
+id = "GHSA-hp3w-g68c-fv3c"
+ignoreUntil = 2027-01-11T00:00:00Z
+reason = """
+sprintf-js uncaught RangeError on huge precision specifiers (CWE-1284); needs an
+attacker-controlled format string. Dev-only: jest -> @jest/transform ->
+babel-plugin-istanbul -> @istanbuljs/load-nyc-config -> js-yaml@3 -> argparse@1.
+Only js-yaml's CLI loads argparse, and argparse passes fixed format strings, so
+it is not reachable during tests. No patched release; npm's fix downgrades jest
+30 -> 25. Re-check when jest drops js-yaml@3.
+"""
