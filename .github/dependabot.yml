@@ -1,11 +1,20 @@
 version: 2
 updates:
-  # Keeps SHA-pinned actions current. Add the CDK language ecosystem (npm or pip) once chosen.
+  # Keeps SHA-pinned actions current.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     groups:
       actions:
+        patterns: ["*"]
+    labels: ["config change"]
+  # CDK app and backend (ADR-0001). Dependabot reports an error until package.json lands with the CDK scaffold.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm:
         patterns: ["*"]
     labels: ["config change"]
