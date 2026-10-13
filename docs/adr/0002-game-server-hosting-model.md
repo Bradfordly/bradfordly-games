@@ -2,11 +2,11 @@
 
 - Status: Proposed
 - Date: 2026-10-12
-- Amended by: [0003](0003-control-plane-server-lifecycle-and-idle-shutdown.md#amends-adr-0002) (A1–A9: host agent signals, instance IAM, boot sequence, admin-reason file, idle power-off, `readyPattern`, lock, grants)
+- Amended by: [0003](0003-control-plane-server-lifecycle-and-idle-shutdown.md#amends-adr-0002) (A1–A10: host-agent signals; instance IAM; boot sequence with agent verification and conntrack accounting; admin-reason file; agent power-off rules and hold; interim `readyPattern`; lock and attempt rules, with the control plane stopping failed starts; extended grants incl. read-before-delete DNS; AWS-side backstops and an 80 h/month run cap; revisit trigger met)
 
 ## Context
 
-Issue #3. Decide how the game server process runs on AWS (the "server plane"): compute, start/stop, player networking, where world data lives across scale-to-zero, AMI/patching and instance IAM, plus the contract the control plane must honour. Designing the control plane (lifecycle API, idle detection, auth, DNS updates) is out of scope: that is ADR-0003, `docs/adr/0003-control-plane-server-lifecycle-and-idle-shutdown.md` ("0003. Control plane: server lifecycle API and idle shutdown"), not yet written. ADR-0001 fixes TypeScript CDK and a Go control plane on Lambda.
+Issue #3. Decide how the game server process runs on AWS (the "server plane"): compute, start/stop, player networking, where world data lives across scale-to-zero, AMI/patching and instance IAM, plus the contract the control plane must honour. Designing the control plane (lifecycle API, idle detection, auth, DNS updates) is out of scope: that is ADR-0003, `docs/adr/0003-control-plane-server-lifecycle-and-idle-shutdown.md` ("0003. Control plane: server lifecycle API and idle shutdown"). ADR-0001 fixes TypeScript CDK and a Go control plane on Lambda.
 
 Owner constraints (authoritative; they override the issue's criteria weighting):
 
