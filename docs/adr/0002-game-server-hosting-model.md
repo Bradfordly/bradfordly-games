@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-12
-- Amended by: [0003](0003-control-plane-server-lifecycle-and-idle-shutdown.md#amends-adr-0002) (A1–A10: host-agent signals; instance IAM; boot sequence with agent verification and conntrack accounting; admin-reason file; agent power-off rules and hold; interim `readyPattern`; lock and attempt rules, with the control plane stopping failed starts; extended grants incl. read-before-delete DNS; AWS-side backstops and an 80 h/month run cap; revisit trigger met)
+- Amended by: [0003](0003-control-plane-server-lifecycle-and-idle-shutdown.md#amends-adr-0002) (A1–A10: host-agent signals; instance IAM, including a Deny-only flood-guard policy the control plane can attach at runtime; boot sequence with agent verification and conntrack accounting; admin-reason file; agent power-off rules and hold; interim `readyPattern`; lock and attempt rules, with the control plane stopping failed starts; extended grants incl. read-before-delete DNS; AWS-side backstops, an 80 h/month run cap and a flood-guard latch; revisit trigger met)
 
 ## Context
 
