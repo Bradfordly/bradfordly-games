@@ -208,7 +208,7 @@ Configuration is passed as environment variables (12-factor):
 | `STOPPING` | A stop was issued or announced and the instance hasn't reached `stopped` |
 | `ADMIN` | Instance running without a lifecycle start (console start, CloudFormation restart, admin session) |
 
-**Attempts.** Every run has an `attemptAt`: the Start request time, or the instance's `LaunchTime` whenever a run is adopted (as `ADMIN`, or as `STARTING` by reconcile rule 2 or Start step 3). Entering `ADMIN` clears `serverId`, `hostname` and `ports`.
+**Attempts.** Every run has an `attemptAt`: the Start request time, or the instance's `LaunchTime` whenever a run is adopted (as `ADMIN`, or as `STARTING` by reconcile rule 2 or Start step 3). Adoption also sets `stateSince` and `lastHostEventAt` to the adoption time, because host events were rejected before it. Entering `ADMIN` clears `serverId`, `hostname` and `ports`.
 
 - EC2 `stopping` and `stopped` events earlier than `attemptAt` are dropped. They need no skew tolerance, because a real stop of this attempt comes minutes later.
 - EC2 `pending` and `running` events get 5 s of tolerance.
@@ -300,7 +300,7 @@ Start(id):
 
 - A run accrues from the item's own `launchTime` (recorded on EC2 `running`, at adoption, or by the reconcile when it first sees the instance running without one).
 - It ends at the `stopped` event's time, or at the reconcile's observation time when the reconcile repairs a lost `stopped`.
-- Nothing accrues if `launchTime` is missing or earlier than `attemptAt` (a start that died before `StartInstances`, or a stale value).
+- Nothing accrues if `launchTime` is missing (Start step 5 clears it, so a start that died before `StartInstances` adds nothing) or more than 5 s earlier than `attemptAt` (a stale value). The 5 s tolerance is needed because `LaunchTime` has whole-second precision.
 - Each run is clamped to 0–12 h 15 min.
 - `runMonth` resets when the month changes, and a run counts in the month it stopped.
 - Every billed run counts, including `ADMIN`.
@@ -362,7 +362,7 @@ Asynchronous producers put commands on the bus. `Start Requested` and `Stop Requ
 
 The reconcile reads the item, `DescribeInstances` and the zone's A records. It takes the lock only when it must act, and re-evaluates on the returned item.
 
-Rules 5, 6, 8 and 9 apply only while the instance is `pending` or `running`. Their clocks start at `t0`, the later of `LaunchTime` and `attemptAt`, so a stale `LaunchTime` can't fire them on a seconds-old start.
+Rules 5, 6, 8 and 9 apply only while the instance is `pending` or `running`. Their clocks start at `t0`, the later of `LaunchTime` and `attemptAt`, so a stale `LaunchTime` can't fire them on a seconds-old start. Rules 5 and 6 also start no earlier than `stateSince`, so an adopted run gets full agent-lost and ready-timeout windows. Rule 8 and run-hours keep `LaunchTime`.
 
 | # | Condition | Action |
 |---|---|---|
@@ -589,7 +589,7 @@ Clearing without detaching just means the next start ends at rule 5 (agent-lost)
 
 **Exposure:**
 
-- Metrics are best-effort [7] and alarms act only on a state change [15], so a flood runs for roughly 2–3 minutes before the deny lands: about $1–2 at 10,000 events/s (estimate).
+- Metrics are best-effort [7] and alarms act only on a state change [15], so a flood runs for roughly 2–3 minutes before the deny lands: about $1–2 at 10,000 events/s, or about $12–18 at the account's 10,000 requests/s × 10 entries if copied credentials are used from many places (estimates).
 - After the deny, the flood's entries fail authorization and aren't ingested. That denied entries are not billed is unverified. The alarm then returns to `OK`.
 - ADR-0002's free account budget alert remains the slow cost signal.
 
@@ -727,7 +727,7 @@ ADR-0002's status line records these amendments in this PR.
     - set `net.netfilter.nf_conntrack_acct=1`;
     - apply the tmpfiles.d entry for `/run/bradfordly-games` (0700);
     - check the on-disk `game-agent` against the SHA-256 that user data writes to `/etc/bradfordly-games/game-agent.sha256`. If it is missing or mismatched, delete it, download the pinned GitHub Release asset into a root-owned 0700 directory, verify it, then `install -m 0755` it to `/usr/local/lib/bradfordly-games/`;
-    - start `game-agent.service` only after a successful verify. The unit's `ExecStartPre` re-checks the hash, and the unit doesn't require `/srv`.
+    - start `game-agent.service` only after a successful verify, with `systemctl restart` (the unit isn't enabled at boot, so after a pin change the previous binary never runs first). The unit's `ExecStartPre` re-checks the hash, and the unit doesn't require `/srv`.
   - Failures are non-fatal for the boot, which continues without the agent. An unverified binary never runs.
   - A pin change changes user data and restarts the instance [ADR-0002 14], so agent upgrades follow "deploy, then stop".
 - **A4. Server-plane invariants → 2. Fail closed to admin mode.**
@@ -835,7 +835,7 @@ Revisit if:
      - grants `contents: write` only to the release job and uses SHA-pinned actions;
      - builds with `CGO_ENABLED=0 go build -trimpath` and produces an artifact attestation [41];
    - a required check on every pin-bump PR that runs `gh attestation verify <asset> --repo Bradfordly/bradfordly-games --signer-workflow Bradfordly/bradfordly-games/.github/workflows/<release>.yml --source-ref refs/tags/agent-v<x> --deny-self-hosted-runners` and asserts that the asset's SHA-256 equals the pin in the PR;
-   - expected cdk-nag suppressions: AwsSolutions-DDB3 (no point-in-time recovery; see Negative) and IAM5 for `ec2:DescribeInstances`.
+   - expected cdk-nag suppressions: AwsSolutions-DDB3 (no point-in-time recovery; see Negative), IAM5 for `ec2:DescribeInstances`, and SNS2 for the alert topic. Don't satisfy SNS2 with `aws/sns`: CloudWatch can publish to an encrypted topic only through a customer managed key whose policy grants `cloudwatch.amazonaws.com`, and that key costs $1/month. The topic carries only alarm notifications. Decide SNS3 (TLS-only) with the flood-alarm test.
 2. **First-deploy tests:**
    - conntrack and accounting visible to the agent under its hardening, for UDP and TCP flows; `systemctl poweroff` and journal reads work; real per-game packet rates are recorded;
    - host `PutEvents`: an allowed event succeeds; a wrong source, a wrong detail-type, another bus and a mixed-entry batch fail per entry;
