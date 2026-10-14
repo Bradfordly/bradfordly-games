@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-11
+- Amended by: [0003](0003-control-plane-server-lifecycle-and-idle-shutdown.md#amends-adr-0001) (B1: the on-host agent ships as a SHA-256-pinned static Go binary from a GitHub Release, not a CDK container image)
 
 ## Context
 
