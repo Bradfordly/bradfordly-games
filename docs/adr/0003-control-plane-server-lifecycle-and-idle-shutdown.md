@@ -195,7 +195,7 @@ Configuration is passed as environment variables (12-factor):
 **Deploy prerequisite: account concurrency.** The two reservations of 1 need an account concurrency quota of at least 102, because reservations can't take the account below 100 unreserved [12].
 
 - The infra PR's preflight checks `aws lambda get-account-settings` for `AccountLimit.ConcurrentExecutions` ≥ 102.
-- If it is lower, request an increase before the first deploy (Service Quotas "Concurrent executions", code L-B99A9384, unverified). New accounts can start with a reduced quota; the commonly quoted value of 10 is unverified.
+- If it is lower, request an increase before the first deploy (Service Quotas "Concurrent executions", code L-B99A9384, adjustable). The owner's account had a quota of 10 on 2026-10-13, so this increase is required.
 - A CDK context flag may omit both reservations temporarily. The consequence: a host-event flood then competes for account concurrency and slows the flood guard, and Discord posts are no longer serial.
 
 ### State machine
@@ -589,9 +589,9 @@ Clearing without detaching just means the next start ends at rule 5 (agent-lost)
 
 **Exposure:**
 
-- Metrics are best-effort [7] and alarms act only on a state change [15], so a flood runs for roughly 2–3 minutes before the deny lands: about $1–2 at 10,000 events/s, or about $12–18 at the account's 10,000 requests/s × 10 entries if copied credentials are used from many places (estimates).
+- Metrics are best-effort [7] and alarms act only on a state change [15], so a flood runs for roughly 2–3 minutes before the deny lands: about $1–2 at 10,000 events/s, or about $12–18 at the account's 10,000 requests/s × 10 entries if copied credentials are used from many places (estimates; the account's PutEvents quota, L-9B653E91, was 10,000 TPS on 2026-10-13).
 - After the deny, the flood's entries fail authorization and aren't ingested. That denied entries are not billed is unverified. The alarm then returns to `OK`.
-- ADR-0002's free account budget alert remains the slow cost signal.
+- ADR-0002's free account budget alert remains the slow cost signal. On 2026-10-13 it was a $25/month cost budget that emails at 85% and 100% of actual spend and at 100% of forecast.
 
 **Synth assertion:** `DenyHostPutEvents` contains only `Deny` statements, so attaching it can only remove permissions.
 
@@ -644,7 +644,7 @@ Clearing without detaching just means the next start ends at rule 5 (agent-lost)
 | `.cli` | the owner's principal, as an ArnLike pattern from CDK context |
 | `.wake` | 0005's role (added by 0005) |
 
-- The owner's principal must be a pattern, because an IAM Identity Center role has an `aws-reserved/sso.amazonaws.com/` path and a generated suffix. An exact ARN would lock the CLI out.
+- The owner's principal must be a pattern. Today it is an IAM user, but an IAM Identity Center role has an `aws-reserved/sso.amazonaws.com/` path and a generated suffix, so an exact ARN would lock the CLI out after a move to Identity Center.
 - One catch-all Deny covers any other `bradfordly-games.*` source (`ForAnyValue:StringLike`) from principals outside the full producer set. So `.discord` needs no row until its producer exists.
 
 **Instance role** (the one new permission, A2):
@@ -811,8 +811,7 @@ Negative:
   - `aws/ssm` decryption without an IAM statement;
   - `StopInstances` behaviour on a `pending` instance;
   - that denied `PutEvents` entries are unbilled;
-  - that a CloudFormation deploy leaves an out-of-band attachment of `DenyHostPutEvents` in place;
-  - the account's concurrency quota.
+  - that a CloudFormation deploy leaves an out-of-band attachment of `DenyHostPutEvents` in place.
 
 Revisit if:
 
@@ -839,7 +838,7 @@ Revisit if:
 2. **First-deploy tests:**
    - conntrack and accounting visible to the agent under its hardening, for UDP and TCP flows; `systemctl poweroff` and journal reads work; real per-game packet rates are recorded;
    - host `PutEvents`: an allowed event succeeds; a wrong source, a wrong detail-type, another bus and a mixed-entry batch fail per entry;
-   - the bus policy denies `.lifecycle` and `.cli` from the instance role, `.host` from the owner, and an unlisted `bradfordly-games.*` source; the owner's Identity Center role passes the `.cli` pattern;
+   - the bus policy denies `.lifecycle` and `.cli` from the instance role, `.host` from the owner, and an unlisted `bradfordly-games.*` source; the owner's principal passes the `.cli` pattern;
    - `hostevents` conditional writes pass under the `dynamodb:Attributes` condition;
    - a container still can't get an IMDSv2 token; read `Expiration` from IMDS to record the real credential lifetime;
    - the notifier reads the SecureString with `ssm:GetParameter` alone (otherwise add the scoped `kms:Decrypt`);
