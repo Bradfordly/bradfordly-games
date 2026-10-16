@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-12
+- Amended by: [0004](0004-game-packages-and-per-server-configuration.md#amends-adr-0003) (D1–D7: server lookup from SSM server records and package projections; admin routes with JSON bodies; agent inputs, anchored RE2 patterns and per-server idle overrides replace the interim readyPattern; `prepare`/`write-file` commands and four new admin-mode reasons; SSM grants for `api` and `events`, with the enumerated tag and record grants kept; one server per game, keyed by the package id)
 
 ## Context
 
