@@ -295,7 +295,9 @@ The limits apply only to cause `lookup`. API, CLI and future Discord starts are 
 - **Worst cases:**
   - **False wakes:** at most 3 a day, so about 93 a month. At about 0.5 h each that is about 46 h and $4.25 (estimate). They stop at 60 h, plus the run in progress.
   - **Hostile wakes:** fake peers holding every run (ADR-0003) can burn about 23 run-hours a day, because runs are sequential with a 30-minute cooldown between them. They reach 60 h in under three days and can hold the last run to about 72 h 15 min, leaving members at least 7 h 45 min. Such runs needn't end `no-join` or report a backstop: the attacker can stop just before it, and the host's own 12 h power-off reports best-effort. So `wakeSeconds` sums the hours of lookup runs, whatever their stop reason ("Measuring noise").
-  - **Draining the daily pool:** anyone who knows a hostname can use up the 3 daily lookup starts early in the UTC day, and every hostname is public in this repo. Real players then get `daily-limit` until 00:00 UTC and need a manual start, which until 0006 ships means asking the owner to use the CLI. This is an accepted risk of W4 (see "Revisit if").
+  - **Draining the daily pool:** anyone who knows a hostname can use up the 3 daily lookup starts early in the UTC day, and every hostname is public in this repo. Real players then get `daily-limit` until 00:00 UTC and need a manual start, which until 0006 ships means asking the owner to use the CLI. This is an accepted risk of W4.
+    - The only real control against it is a secret hostname suffix kept out of this repo. The limits bound its cost but don't stop it, and W5 defers the suffix.
+    - The revisit triggers apply from the first deploy, not after abuse is noticed: the `wake` counters and refusal notices exist from day one, and the monthly runbook checks them ("Measuring noise").
 
 New item attributes. Every write is a conditional `UpdateItem` on named attributes, as in ADR-0003:
 
