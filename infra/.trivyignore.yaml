@@ -1,13 +1,27 @@
 # Reviewed exceptions for Trivy. Each entry needs a statement and an expiry.
-# osv-scanner exceptions for the same findings live in osv-scanner.toml.
+# osv-scanner exceptions live in osv-scanner.toml.
+# `paths` are relative to the scan root, so run Trivy from the repo root:
+#   trivy fs --ignorefile infra/.trivyignore.yaml .
 
 vulnerabilities:
-  # GHSA-g3hv-75wg-m249. The full reachability note is in osv-scanner.toml.
+  # GHSA-g3hv-75wg-m249: minimatch globParts amplification DoS (CWE-405), fixed
+  # in 11.0.1. package.json overrides the dev copies to 11.x. This entry is for
+  # the copy bundled inside aws-cdk-lib (bundleDependencies), which overrides
+  # cannot replace. Even the latest aws-cdk-lib (2.275.0) bundles ^10.2.6.
+  #
+  # Not reachable: the bug is in firstPhasePreProcess(), which only runs with
+  # optimizationLevel >= 2. Every aws-cdk-lib call site (core/lib/stack.js,
+  # core/lib/mixins/selectors.js, core/lib/fs/ignore.js) uses the default of 1,
+  # and the patterns come from our own CDK code at synth time.
+  #
+  # The purl is pinned to the bundled version on purpose: an aws-cdk-lib bump
+  # that bundles a different minimatch fails the scan again, so the call sites
+  # get re-checked. osv-scanner skips bundled copies, so it has no entry.
   - id: CVE-2026-118764
     paths:
       - "infra/package-lock.json"
     purls:
-      - "pkg:npm/minimatch"
+      - "pkg:npm/minimatch@10.2.5"
     expired_at: 2026-12-01
     statement: >-
       minimatch bundled inside aws-cdk-lib, which npm overrides cannot replace.

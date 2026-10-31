@@ -1,19 +1,5 @@
 # Reviewed exceptions for osv-scanner. Each entry needs a reason and an expiry.
-# Trivy exceptions for the same findings live in .trivyignore.yaml.
-
-[[IgnoredVulns]]
-id = "GHSA-g3hv-75wg-m249"
-ignoreUntil = 2026-12-01T00:00:00Z
-reason = """
-minimatch globParts amplification DoS (CWE-405), fixed in 11.0.1. The dev copies
-are overridden to 11.x in package.json; this entry covers only the copy bundled
-inside aws-cdk-lib (bundleDependencies), which overrides cannot replace. Even the
-latest aws-cdk-lib (2.275.0) bundles minimatch ^10.2.6. Not reachable: the bug is
-in firstPhasePreProcess(), which only runs with optimizationLevel >= 2, and every
-aws-cdk-lib call site (core/lib/stack.js, core/lib/mixins/selectors.js,
-core/lib/fs/ignore.js) uses the default of 1. Patterns come from our own CDK code
-at synth time. Remove once aws-cdk-lib bundles minimatch >= 11.0.1.
-"""
+# Trivy exceptions live in .trivyignore.yaml.
 
 [[IgnoredVulns]]
 id = "GHSA-gcqx-w48m-w2h4"
@@ -21,7 +7,7 @@ ignoreUntil = 2027-01-31T00:00:00Z
 reason = """
 deepmerge prototype poisoning (CWE-1321, GitHub severity Low); no patched release.
 Dev-only: jest -> @jest/core -> jest-config, and even the latest jest (30.5.2)
-depends on it. jest-config only merges Jest's defaults with our checked-in
-jest.config.js (we use no presets), so no untrusted object reaches it. Re-check
-when deepmerge ships a fix or jest-config drops it.
+depends on it. jest-config only calls deepmerge to merge a `preset`'s globals and
+in its exported mergeConfig() helper. We use neither, so it never runs. Re-check
+if we add a Jest preset, or when deepmerge ships a fix or jest-config drops it.
 """

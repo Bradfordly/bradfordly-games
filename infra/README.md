@@ -38,4 +38,4 @@ If neither is set, the stack synthesizes as environment-agnostic.
 
 [osv-scanner.toml](osv-scanner.toml) and [.trivyignore.yaml](.trivyignore.yaml) list reviewed vulnerability exceptions. Each entry needs a reason and an expiry date.
 
-`overrides` in [package.json](package.json) forces patched versions of transitive dev dependencies whose parents still pin a vulnerable range. Remove an override once its parents allow the patched version.
+`overrides` in [package.json](package.json) forces patched versions of transitive dev dependencies whose parents still pin a vulnerable range. Remove an override once its parents allow the patched version. glob 14 inlines its own minimatch, so the `minimatch` override only reaches packages that require minimatch directly, such as `test-exclude`.
