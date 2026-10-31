@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-12
-- Amended by: [0004](0004-game-packages-and-per-server-configuration.md#amends-adr-0003) (D1–D7: server lookup from SSM server records and package projections; admin routes with JSON bodies; agent inputs, anchored RE2 patterns and per-server idle overrides replace the interim readyPattern; `prepare`/`write-file` commands and four new admin-mode reasons; SSM grants for `api` and `events`, with the enumerated tag and record grants kept; one server per game, keyed by the package id)
+- Amended by: [0004](0004-game-packages-and-per-server-configuration.md#amends-adr-0003) (D1–D7: server lookup from SSM server records and package projections; admin routes with JSON bodies; agent inputs, anchored RE2 patterns and per-server idle overrides replace the interim readyPattern; `prepare`/`write-file` commands and four new admin-mode reasons; SSM grants for `api` and `events`, with the enumerated tag and record grants kept; one server per game, keyed by the package id); [0005](0005-wake-on-connect.md#amends-adr-0003) (F1–F11: reconcile rule 10 pulls lookups from the query log and replaces the `.wake` producer, its cause row, rule pattern and bus-policy entry; lookup limits in Start (cooldown, 3 per day, 60 h), checked before the cap; wake counters and per-reason notice timestamps on the item, with `stateSince` set on every entry to `STOPPED`; `Request Rejected` reasons `cooldown`, `daily-limit` and `wake-budget`, consumed by the notifier for lookups; hostnames in code spans; `logs:FilterLogEvents` for `events`, with own-log-group logging grants only; `WAKE_*` configuration; wake counters in `GET /status`; `Wake Unavailable` event for read errors, emitted by `events` only)
 
 ## Context
 
