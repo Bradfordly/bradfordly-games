@@ -1,0 +1,15 @@
+# Reviewed exceptions for Trivy. Each entry needs a statement and an expiry.
+# osv-scanner exceptions for the same findings live in osv-scanner.toml.
+
+vulnerabilities:
+  # GHSA-g3hv-75wg-m249. The full reachability note is in osv-scanner.toml.
+  - id: CVE-2026-118764
+    paths:
+      - "infra/package-lock.json"
+    purls:
+      - "pkg:npm/minimatch"
+    expired_at: 2026-12-01
+    statement: >-
+      minimatch bundled inside aws-cdk-lib, which npm overrides cannot replace.
+      Not reachable: aws-cdk-lib never sets optimizationLevel >= 2. Remove once
+      aws-cdk-lib bundles minimatch >= 11.0.1.

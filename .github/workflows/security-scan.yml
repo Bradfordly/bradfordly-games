@@ -41,6 +41,7 @@ jobs:
           scanners: vuln,secret,misconfig
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          trivyignores: infra/.trivyignore.yaml
           format: sarif
           output: trivy-results.sarif
           exit-code: "1"

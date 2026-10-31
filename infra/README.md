@@ -36,4 +36,6 @@ If neither is set, the stack synthesizes as environment-agnostic.
 
 ## Security exceptions
 
-[osv-scanner.toml](osv-scanner.toml) lists reviewed vulnerability exceptions. Each entry needs a reason and an expiry date.
+[osv-scanner.toml](osv-scanner.toml) and [.trivyignore.yaml](.trivyignore.yaml) list reviewed vulnerability exceptions. Each entry needs a reason and an expiry date.
+
+`overrides` in [package.json](package.json) forces patched versions of transitive dev dependencies whose parents still pin a vulnerable range. Remove an override once its parents allow the patched version.
