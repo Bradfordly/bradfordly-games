@@ -21,6 +21,10 @@
     "aws-cdk-lib": "^2.272.0",
     "constructs": "^10.5.0"
   },
+  "overrides": {
+    "glob": "^14.0.2",
+    "minimatch": "^11.0.1"
+  },
   "private": true,
   "engines": {
     "node": ">=24"
